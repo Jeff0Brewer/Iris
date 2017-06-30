@@ -16,3 +16,20 @@ c:\users\researchsquad\documents\visual studio 2017\Projects\ModularVis\ModularV
 c:\users\researchsquad\documents\visual studio 2017\Projects\ModularVis\ModularVis\obj\Debug\ModularVis.csproj.GenerateResource.Cache
 c:\users\researchsquad\documents\visual studio 2017\Projects\ModularVis\ModularVis\obj\Debug\ModularVis.exe
 c:\users\researchsquad\documents\visual studio 2017\Projects\ModularVis\ModularVis\obj\Debug\ModularVis.pdb
+C:\Users\ResearchSquad\Documents\GitHub\ModularVis\ModularVis\ModularVis\bin\Debug\Tobii.EyeX.Client.dll
+C:\Users\ResearchSquad\Documents\GitHub\ModularVis\ModularVis\ModularVis\bin\Debug\ModularVis.exe.config
+C:\Users\ResearchSquad\Documents\GitHub\ModularVis\ModularVis\ModularVis\bin\Debug\ModularVis.exe
+C:\Users\ResearchSquad\Documents\GitHub\ModularVis\ModularVis\ModularVis\bin\Debug\ModularVis.pdb
+C:\Users\ResearchSquad\Documents\GitHub\ModularVis\ModularVis\ModularVis\bin\Debug\EyeXFramework.dll
+C:\Users\ResearchSquad\Documents\GitHub\ModularVis\ModularVis\ModularVis\bin\Debug\EyeXFramework.pdb
+C:\Users\ResearchSquad\Documents\GitHub\ModularVis\ModularVis\ModularVis\obj\Debug\ModularVis.csprojResolveAssemblyReference.cache
+C:\Users\ResearchSquad\Documents\GitHub\ModularVis\ModularVis\ModularVis\obj\Debug\MainWindow.g.cs
+C:\Users\ResearchSquad\Documents\GitHub\ModularVis\ModularVis\ModularVis\obj\Debug\App.g.cs
+C:\Users\ResearchSquad\Documents\GitHub\ModularVis\ModularVis\ModularVis\obj\Debug\ModularVis_MarkupCompile.cache
+C:\Users\ResearchSquad\Documents\GitHub\ModularVis\ModularVis\ModularVis\obj\Debug\ModularVis_MarkupCompile.lref
+C:\Users\ResearchSquad\Documents\GitHub\ModularVis\ModularVis\ModularVis\obj\Debug\MainWindow.baml
+C:\Users\ResearchSquad\Documents\GitHub\ModularVis\ModularVis\ModularVis\obj\Debug\ModularVis.g.resources
+C:\Users\ResearchSquad\Documents\GitHub\ModularVis\ModularVis\ModularVis\obj\Debug\ModularVis.Properties.Resources.resources
+C:\Users\ResearchSquad\Documents\GitHub\ModularVis\ModularVis\ModularVis\obj\Debug\ModularVis.csproj.GenerateResource.Cache
+C:\Users\ResearchSquad\Documents\GitHub\ModularVis\ModularVis\ModularVis\obj\Debug\ModularVis.exe
+C:\Users\ResearchSquad\Documents\GitHub\ModularVis\ModularVis\ModularVis\obj\Debug\ModularVis.pdb
