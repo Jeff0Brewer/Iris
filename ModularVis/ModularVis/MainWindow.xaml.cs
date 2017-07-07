@@ -13,6 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Threading;
+using System.Windows.Media.Effects;
 
 using EyeXFramework.Wpf;
 using Tobii.EyeX.Framework;
@@ -25,25 +26,38 @@ namespace ModularVis
     /// </summary>
     public partial class MainWindow : Window
     {
-        Point curr = new Point(0, 0);
-
         GazeTrack t1;
         GazeLine t2;
         FixPoints t3;
 
+        //Coloring
+        CanColor toColor;
+        int id;
+
         EyeXHost eyeHost;
+        Point curr = new Point(0, 0);
+
         public MainWindow()
         {
             InitializeComponent();
-
-            t1 = new GazeTrack(canv);
-            t2 = new GazeLine(canv);
-            t3 = new FixPoints(canv);
 
             eyeHost = new EyeXHost();
             eyeHost.Start();
             var gaze = eyeHost.CreateGazePointDataStream(GazePointDataMode.LightlyFiltered);
             gaze.Next += gazePoint;
+        }
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            bg.Width = canv.ActualWidth;
+            bg.Height = canv.ActualHeight;
+
+            t1 = new GazeTrack(canv);
+            t2 = new GazeLine(canv);
+            t3 = new FixPoints(canv);
+
+            toColor = t1;
+            id = 0;
 
             System.Windows.Threading.DispatcherTimer dispatcherTimer = new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.Render);
             dispatcherTimer.Interval = new TimeSpan(0, 0, 0, 0, 10);
@@ -60,18 +74,268 @@ namespace ModularVis
         private void update(object sender, EventArgs e)
         {
             Point fromScreen = PointFromScreen(curr);
+
             t1.next(fromScreen);
             t2.next(fromScreen);
             t3.next(fromScreen);
         }
 
-        private class FixPoints {
+        public int max(int a, int b) {
+            return (a > b) ? a : b;
+        }
+
+        public abstract class CanColor {
+            public abstract void setColor(int id, Brush b);
+        }
+
+        public class EnvLens {
+            private Canvas canv;
+            private Ellipse lens;
+            private Point prev;
+            private int radius;
+            private double smooth;
+            private string img;
+            private double zoom;
+
+            public EnvLens(Canvas c, String i) {
+                canv = c;
+                img = i;
+                prev = new Point(100, 100);
+                radius = 70;
+                smooth = .7;
+                zoom = 1;
+                lens = new Ellipse();
+                lens.Width = 2 * radius;
+                lens.Height = 2 * radius;
+                Panel.SetZIndex(lens, 51);
+                lens.Fill = new SolidColorBrush(Colors.Black);
+                canv.Children.Add(lens);
+            }
+
+            public void next(Point p) {
+                prev.X = prev.X * smooth + p.X * (1 - smooth);
+                prev.Y = prev.Y * smooth + p.Y * (1 - smooth);
+
+                Canvas.SetLeft(lens, prev.X - radius);
+                Canvas.SetTop(lens, prev.Y - radius);
+
+                Rectangle bg = canv.FindName("bg") as Rectangle;
+
+                try
+                {
+                    BitmapImage src = new BitmapImage();
+                    src.BeginInit();
+                    src.UriSource = new Uri(img, UriKind.Relative);
+                    src.CacheOption = BitmapCacheOption.OnLoad;
+                    src.EndInit();
+                    double ratioX = src.PixelWidth / bg.Width;
+                    double ratioY = src.PixelHeight / bg.Height;
+                    ImageBrush temp = new ImageBrush(new CroppedBitmap(src, new Int32Rect((int)((prev.X - radius*zoom)*ratioX),
+                                                                                          (int)((prev.Y - radius*zoom)*ratioY),
+                                                                                          (int)((2*radius*zoom)*ratioX), 
+                                                                                          (int)((2*radius*zoom)*ratioY))));
+                    temp.Stretch = Stretch.Fill;
+                    lens.Fill = temp;
+                }
+                catch { }
+            }
+        }
+
+        private class Warp {
+            private Canvas canv;
+            private Polygon[,] frame;
+            private Point[,] points;
+            private Point prev;
+            private double pull;
+            private double smooth;
+            private double width, height;
+            private int dwidth, dheight;
+            private double stepX, stepY;
+
+            public Warp(Canvas c, string img) {
+                canv = c;
+                prev = new Point(0, 0);
+                pull = 10;
+                smooth = .7; width = canv.ActualWidth - SystemParameters.WindowNonClientFrameThickness.Left - SystemParameters.WindowNonClientFrameThickness.Right;
+                height = canv.ActualHeight - SystemParameters.WindowNonClientFrameThickness.Top - SystemParameters.WindowNonClientFrameThickness.Bottom;
+                dwidth = 30;
+                dheight = (int)(height * (dwidth / width));
+                stepX = width / (dwidth - 1);
+                stepY = height / (dheight - 1);
+                frame = new Polygon[dheight-1, dwidth-1];
+                points = new Point[dheight, dwidth];
+                for (int y = 0; y < dheight; y++) {
+                    for (int x = 0; x < dwidth; x++) {
+                        points[y, x] = new Point(x*stepX, y*stepY);
+                    }
+                }
+                BitmapImage src = new BitmapImage();
+                src.BeginInit();
+                src.UriSource = new Uri(img, UriKind.Relative);
+                src.CacheOption = BitmapCacheOption.OnLoad;
+                src.EndInit();
+
+                for (int y = 0; y < dheight - 1; y++) {
+                    for (int x = 0; x < dwidth - 1; x++) {
+                        frame[y, x] = new Polygon();
+                        frame[y, x].Points.Add(points[y, x]);
+                        frame[y, x].Points.Add(points[y, x + 1]);
+                        frame[y, x].Points.Add(points[y + 1, x + 1]);
+                        frame[y, x].Points.Add(points[y + 1, x]);
+                        ImageBrush temp = new ImageBrush(new CroppedBitmap(src, new Int32Rect((int)(x * stepX), (int)(y * stepY), (int)(stepX), (int)(stepY))));
+                        temp.Stretch = Stretch.Fill;
+                        frame[y, x].Fill = temp;
+                        canv.Children.Add(frame[y, x]);
+                    }
+                }
+            }
+
+            public void next(Point p) {
+                prev.X = prev.X * smooth + p.X * (1 - smooth);
+                prev.Y = prev.Y * smooth + p.Y * (1 - smooth);
+                
+                double thisPull;
+                Point thisStart = new Point();
+                for (int y = 0; y < dheight; y++){
+                    for (int x = 0; x < dwidth; x++){
+                        thisStart.X = x * stepX;
+                        thisStart.Y = y * stepY;
+                        thisPull = pull / distance(prev, thisStart);
+                        thisPull = min(thisPull, .9);
+                        points[y, x].X = thisStart.X * (1 - thisPull) + prev.X * thisPull;
+                        points[y, x].Y = thisStart.Y * (1 - thisPull) + prev.Y * thisPull;
+                    }
+                }
+                for (int y = 0; y < dheight - 1; y++){
+                    for (int x = 0; x < dwidth - 1; x++){
+                        frame[y, x].Points[0] = points[y, x];
+                        frame[y, x].Points[1] = points[y, x + 1];
+                        frame[y, x].Points[2] = points[y + 1, x + 1];
+                        frame[y, x].Points[3] = points[y + 1, x];
+                    }
+                }
+            }
+
+            private double min(double a, double b)
+            {
+                return (a < b) ? a : b;
+            }
+
+            private double distance(Point a, Point b)
+            {
+                return Math.Sqrt(Math.Pow(a.X - b.X, 2) + Math.Pow(a.Y - b.Y, 2));
+            }
+        }
+
+        private class EnvGaze : CanColor {
+            private Canvas canv;
+            private double width, height;
+            private Ellipse[,] dots;
+            private Brush br;
+            private Point prev;
+            private double radius;
+            private double opacity;
+            private double pull;
+            private double smooth;
+            private int dwidth, dheight;
+            private double stepX, stepY;
+            
+            public EnvGaze(Canvas c) {
+                canv = c;
+                br = new SolidColorBrush(Colors.Black);
+                prev = new Point(0, 0);
+                width = canv.ActualWidth - SystemParameters.WindowNonClientFrameThickness.Left - SystemParameters.WindowNonClientFrameThickness.Right;
+                height = canv.ActualHeight - SystemParameters.WindowNonClientFrameThickness.Top - SystemParameters.WindowNonClientFrameThickness.Bottom;
+                radius = 3;
+                opacity = .5;
+                pull = 30;
+                smooth = .7;
+                dwidth = 15;
+                dheight = (int)(height * (dwidth / width));
+                stepX = width / (dwidth - 1);
+                stepY = height / (dheight - 1);
+                dots = new Ellipse[dheight, dwidth];
+                for (int y = 0; y < dheight; y++) {
+                    for (int x = 0; x < dwidth; x++) {
+                        dots[y, x] = new Ellipse();
+                        dots[y, x].Width = radius * 2;
+                        dots[y, x].Height = radius * 2;
+                        dots[y, x].Opacity = opacity;
+                        dots[y, x].Fill = br;
+                        Canvas.SetLeft(dots[y, x], x * stepX);
+                        Canvas.SetTop(dots[y, x], y * stepY);
+                        canv.Children.Add(dots[y, x]);
+                    }
+                }
+            }
+
+            public void next(Point p)
+            {
+                prev.X = prev.X * smooth + p.X * (1 - smooth);
+                prev.Y = prev.Y * smooth + p.Y * (1 - smooth);
+
+                double thisPull;
+                Point thisStart = new Point();
+                for (int y = 0; y < dheight; y++){
+                    for (int x = 0; x < dwidth; x++){
+                        thisStart.X = x * stepX;
+                        thisStart.Y = y * stepY;
+                        thisPull = pull / distance(prev, thisStart);
+                        thisPull = min(thisPull, .9);
+                        Canvas.SetLeft(dots[y, x], thisStart.X * (1 - thisPull) + prev.X * thisPull);
+                        Canvas.SetTop(dots[y, x], thisStart.Y * (1 - thisPull) + prev.Y * thisPull);
+                    }
+                }
+            }
+
+            public void setDensity(int d) {
+                for (int y = 0; y < dheight; y++) {
+                    for (int x = 0; x < dwidth; x++) {
+                        canv.Children.Remove(dots[y, x]);
+                    }
+                }
+                dwidth = d;
+                dheight = (int)(height * (dwidth / width));
+                stepX = width / (dwidth - 1);
+                stepY = height / (dheight - 1);
+                dots = new Ellipse[dheight, dwidth];
+                for (int y = 0; y < dheight; y++){
+                    for (int x = 0; x < dwidth; x++){
+                        dots[y, x] = new Ellipse();
+                        dots[y, x].Width = radius * 2;
+                        dots[y, x].Height = radius * 2;
+                        dots[y, x].Opacity = opacity;
+                        dots[y, x].Fill = br;
+                        Canvas.SetLeft(dots[y, x], x * stepX);
+                        Canvas.SetTop(dots[y, x], y * stepY);
+                        canv.Children.Add(dots[y, x]);
+                    }
+                }
+            }
+
+            public override void setColor(int id, Brush b) {
+
+            }
+
+            private double min(double a, double b) {
+                return (a < b) ? a : b;
+            }
+
+            private double distance(Point a, Point b){
+                return Math.Sqrt(Math.Pow(a.X - b.X, 2) + Math.Pow(a.Y - b.Y, 2));
+            }
+        }
+
+        private class FixPoints : CanColor
+        {
             private Canvas canv;
             private Ellipse[] dots;
             private Point[] points;
             private Point potentialFix;
             private Point block;
-            private Brush br;
+            private Point prev;
+            private Brush dbr;
+            private Brush lbr;
             private int len;
             private double currCount;
             private int fixTime;
@@ -80,6 +344,8 @@ namespace ModularVis
             private Line[] lines;
             private double lineWidth;
             private double lineOpacity;
+            private double activeLineOpacity;
+            private double smooth;
             private int lineInd;
 
 
@@ -92,12 +358,16 @@ namespace ModularVis
                 fixTime = 50;
                 startOpacity = .5;
                 endOpacity = 0;
-                br = new SolidColorBrush(System.Windows.Media.Colors.Black);
+                smooth = .7;
+                prev = new Point(0, 0);
+                dbr = new SolidColorBrush(System.Windows.Media.Colors.Black);
+                lbr = new SolidColorBrush(System.Windows.Media.Colors.Black);
                 dots = new Ellipse[len];
                 points = new Point[len];
                 lines = new Line[len];
                 lineWidth = 5;
                 lineOpacity = .5;
+                activeLineOpacity = 0;
                 lineInd = 1;
                 potentialFix = new Point(0, 0);
                 block = new Point(0, 0);
@@ -108,7 +378,7 @@ namespace ModularVis
                 for (int i = 0; i < len; i++) {
                     points[i] = new Point(-100, -100);
                     dots[i] = new Ellipse();
-                    dots[i].Fill = br;
+                    dots[i].Fill = dbr;
                     dots[i].Opacity = opacity;
                     opacity -= opacityInc;
                     dots[i].Width = radius * 2;
@@ -119,20 +389,24 @@ namespace ModularVis
                     canv.Children.Add(dots[i]);
                     lines[i] = new Line();
                     lines[i].Opacity = lineOpacity;
-                    lines[i].Stroke = br;
+                    lines[i].Stroke = lbr;
                     lines[i].StrokeThickness = lineWidth;
                     lines[i].X1 = -100;
                     lines[i].Y1 = -100;
                     lines[i].X2 = -100;
                     lines[i].Y2 = -100;
+                    lines[i].StrokeEndLineCap = PenLineCap.Round;
+                    lines[i].StrokeStartLineCap = PenLineCap.Round;
                     canv.Children.Add(lines[i]);
                 }
             }
 
             public void next(Point p) {
+                prev.X = prev.X * smooth + p.X * (1 - smooth);
+                prev.Y = prev.Y * smooth + p.Y * (1 - smooth);
                 if (len > 0)
                 {
-                    if (distance(p, potentialFix) < startRadius && (distance(p, block) > startRadius | fixTime < 15))
+                    if (fixTime < 10 || (distance(prev, potentialFix) < startRadius && distance(prev, block) > startRadius))
                     {
                         currCount++;
                     }
@@ -140,8 +414,14 @@ namespace ModularVis
                     {
                         currCount = (currCount - 6 > 1) ? currCount - 6 : 1;
                     }
-                    potentialFix.X = potentialFix.X * ((currCount - 1) / currCount) + p.X * (1 / currCount);
-                    potentialFix.Y = potentialFix.Y * ((currCount - 1) / currCount) + p.Y * (1 / currCount);
+                    potentialFix.X = potentialFix.X * ((currCount - 1) / currCount) + prev.X * (1 / currCount);
+                    potentialFix.Y = potentialFix.Y * ((currCount - 1) / currCount) + prev.Y * (1 / currCount);
+
+
+                    lines[len - 1].X2 = points[0].X;
+                    lines[len - 1].Y2 = points[0].Y;
+                    lines[len - 1].X1 = prev.X;
+                    lines[len - 1].Y1 = prev.Y;
 
                     if (currCount > fixTime)
                     {
@@ -171,6 +451,25 @@ namespace ModularVis
                 }
             }
 
+            public override void setColor(int id, Brush b) {
+                if (id == 0)
+                {
+                    for (int i = 0; i < len; i++)
+                    {
+                        dbr = b;
+                        dots[i].Fill = dbr;
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < len; i++)
+                    {
+                        lbr = b;
+                        lines[i].Stroke = lbr;
+                    }
+                }
+            }
+
             public void setLineWidth(double w) {
                 lineWidth = w;
                 for (int i = 0; i < len; i++) {
@@ -178,14 +477,20 @@ namespace ModularVis
                 }
             }
 
+            public void setActiveLineOpacity(double o) {
+                activeLineOpacity = o;
+                lines[len-1].Opacity = activeLineOpacity;
+            }
+
             public void setLineOpacity(double o) {
                 lineOpacity = o;
-                for (int i = 0; i < len; i++) {
+                for (int i = 0; i < len - 1; i++) {
                     lines[i].Opacity = lineOpacity;
                 }
             }
 
             public void setLength(int l) {
+                lineInd = 0;
                 for (int i = 0; i < len; i++) {
                     canv.Children.Remove(dots[i]);
                     canv.Children.Remove(lines[i]);
@@ -202,7 +507,7 @@ namespace ModularVis
                 {
                     points[i] = new Point(-100, -100);
                     dots[i] = new Ellipse();
-                    dots[i].Fill = br;
+                    dots[i].Fill = dbr;
                     dots[i].Opacity = opacity;
                     opacity -= opacityInc;
                     dots[i].Width = radius * 2;
@@ -213,14 +518,17 @@ namespace ModularVis
                     canv.Children.Add(dots[i]);
                     lines[i] = new Line();
                     lines[i].Opacity = lineOpacity;
-                    lines[i].Stroke = br;
+                    lines[i].Stroke = lbr;
                     lines[i].StrokeThickness = lineWidth;
                     lines[i].X1 = -100;
                     lines[i].Y1 = -100;
                     lines[i].X2 = -100;
                     lines[i].Y2 = -100;
+                    lines[i].StrokeEndLineCap = PenLineCap.Round;
+                    lines[i].StrokeStartLineCap = PenLineCap.Round;
                     canv.Children.Add(lines[i]);
                 }
+                lines[len - 1].Opacity = activeLineOpacity;
             }
 
             public void setFixTime(int t) {
@@ -277,12 +585,16 @@ namespace ModularVis
                 }
             }
 
+            public void setSmooth(double s) {
+                smooth = s;
+            }
+
             private double distance(Point a, Point b) {
                 return Math.Sqrt(Math.Pow(a.X - b.X, 2) + Math.Pow(a.Y - b.Y, 2));
             }
         }
 
-        private class GazeLine {
+        private class GazeLine : CanColor {
             private Canvas canv;
             private Line[] trail;
             private Point[] echo;
@@ -317,6 +629,7 @@ namespace ModularVis
                     trail[i].Y2 = 0;
                     trail[i].Stroke = br;
                     trail[i].StrokeThickness = width;
+                    trail[i].StrokeEndLineCap = PenLineCap.Round;
                     width -= widthInc;
                     trail[i].Opacity = opacity;
                     opacity -= opacityInc;
@@ -336,6 +649,13 @@ namespace ModularVis
                     trail[i].Y1 = echo[i].Y;
                     trail[i].X2 = echo[i + 1].X;
                     trail[i].Y2 = echo[i + 1].Y;
+                }
+            }
+
+            public override void setColor(int id, Brush b) {
+                br = b;
+                for (int i = 0; i < len; i++) {
+                    trail[i].Stroke = br;
                 }
             }
 
@@ -362,6 +682,7 @@ namespace ModularVis
                     trail[i].Y2 = curr.Y;
                     trail[i].Stroke = br;
                     trail[i].StrokeThickness = width;
+                    trail[i].StrokeEndLineCap = PenLineCap.Round;
                     width -= widthInc;
                     trail[i].Opacity = opacity;
                     opacity -= opacityInc;
@@ -420,7 +741,7 @@ namespace ModularVis
             }
         }
 
-        private class GazeTrack {
+        private class GazeTrack : CanColor {
             private Canvas canv;
             private Ellipse body;
             private Point prev;
@@ -430,24 +751,38 @@ namespace ModularVis
             private double innerRadius;
             private double smooth;
             private double opacity;
+            //EnvColoring
+            private bool env;
+            private string img;
+            private double zoom;
+            private BitmapImage src;
+            private double ratioX, ratioY;
 
             public GazeTrack(Canvas c) {
                 canv = c;
                 smooth = .7;
-                outerRadius = 5;
+                outerRadius = 0;
                 innerRadius = 0;
                 opacity = 1;
                 blur = new TrackBlur(canv, outerRadius);
                 br = new SolidColorBrush(System.Windows.Media.Colors.Black);
                 prev = new Point(0, 0);
                 body = new Ellipse();
+                body.Opacity = opacity;
                 body.Width = outerRadius * 2;
                 body.Height = outerRadius * 2;
                 body.Stroke = br;
                 body.StrokeThickness = outerRadius - innerRadius;
                 Canvas.SetLeft(body, 0);
                 Canvas.SetTop(body, 0);
+                Panel.SetZIndex(body, 50);
                 canv.Children.Add(body);
+
+                //EnvColoring
+                env = false;
+                img = "";
+                zoom = .95;
+                src = new BitmapImage();
             }
 
             public void next(Point p)
@@ -456,7 +791,52 @@ namespace ModularVis
                 prev.Y = prev.Y * smooth + p.Y * (1 - smooth);
                 Canvas.SetLeft(body, prev.X - outerRadius);
                 Canvas.SetTop(body, prev.Y - outerRadius);
+
+                if (env) {
+                    try
+                    {
+                        ImageBrush temp = new ImageBrush(new CroppedBitmap(src, new Int32Rect((int)((prev.X - outerRadius * zoom) * ratioX),
+                                                                                              (int)((prev.Y - outerRadius * zoom) * ratioY),
+                                                                                              (int)((2 * outerRadius * zoom) * ratioX),
+                                                                                              (int)((2 * outerRadius * zoom) * ratioY))));
+                        temp.Stretch = Stretch.Fill;
+                        body.Stroke = temp;
+                    }
+                    catch { }
+                }
+
+
                 blur.next(prev);
+            }
+
+            public override void setColor(int id, Brush b) {
+                if (id == 0){
+                    br = b;
+                    body.Stroke = br;
+                }
+                else {
+                    blur.setColor(b);
+                }
+                env = false;
+            }
+
+            public void setEnv(String path) {
+                opacity = 1;
+                body.Opacity = opacity;
+                img = path;
+                env = true;
+                src = new BitmapImage();
+                src.BeginInit();
+                src.UriSource = new Uri(img, UriKind.Relative);
+                src.CacheOption = BitmapCacheOption.OnLoad;
+                src.EndInit();
+                Rectangle bg = canv.FindName("bg") as Rectangle;
+                ratioX = src.PixelWidth / bg.Width;
+                ratioY = src.PixelHeight / bg.Height;
+            }
+
+            public void setEnvZoom(double z) {
+                zoom = z;
             }
 
             public void setBlurLength(int l) {
@@ -592,6 +972,13 @@ namespace ModularVis
                 }
             }
 
+            public void setColor(Brush b) {
+                br = b;
+                for (int i = 0; i < len; i++) {
+                    lens[i].Stroke = br;
+                }
+            }
+
             public void setStartOpacity(double so) {
                 startOpacity = so;
                 double opacity = startOpacity;
@@ -657,6 +1044,7 @@ namespace ModularVis
                 {
                     t1.setSmooth(Convert.ToDouble(input.Text));
                     t2.setSmooth(Convert.ToDouble(input.Text));
+                    t3.setSmooth(Convert.ToDouble(input.Text));
                 }
                 catch
                 {
@@ -967,6 +1355,78 @@ namespace ModularVis
 
                 }
             }
+        }
+
+        private void FixActiveLineOpacity_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key.Equals(Key.Enter))
+            {
+                TextBox input = sender as TextBox;
+                try
+                {
+                    t3.setActiveLineOpacity(Convert.ToDouble(input.Text));
+                }
+                catch
+                {
+
+                }
+            }
+        }
+
+        private void EnvZoom_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key.Equals(Key.Enter))
+            {
+                TextBox input = sender as TextBox;
+                try
+                {
+                    t1.setEnvZoom(Convert.ToDouble(input.Text));
+                }
+                catch
+                {
+
+                }
+            }
+        }
+
+        private void Color_Click(object sender, MouseButtonEventArgs e)
+        {
+            toColor.setColor(id,(sender as Rectangle).Fill);
+        }
+
+        private void TrDot_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            toColor = t1;
+            id = 0;
+        }
+
+        private void TrShad_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            toColor = t1;
+            id = 1;
+        }
+
+        private void Lin_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            toColor = t2;
+            id = 0;
+        }
+
+        private void FDot_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            toColor = t3;
+            id = 0;
+        }
+
+        private void FLin_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            toColor = t3;
+            id = 1;
+        }
+
+        private void Env_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            t1.setEnv("testbg.jpg");
         }
     }
 }
