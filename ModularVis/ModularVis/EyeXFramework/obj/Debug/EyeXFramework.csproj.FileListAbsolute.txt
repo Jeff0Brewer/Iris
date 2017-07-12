@@ -36,3 +36,11 @@ C:\Users\ResearchSquad\Documents\GitHub\ModularVis\ModularVis\ModularVis\EyeXFra
 C:\Users\ResearchSquad\Documents\GitHub\ModularVis\ModularVis\ModularVis\EyeXFramework\bin\Debug\EyeXFramework.pdb
 C:\Users\ResearchSquad\Documents\GitHub\ModularVis\ModularVis\ModularVis\EyeXFramework\bin\Debug\Tobii.EyeX.Client.Net20.dll
 C:\Users\ResearchSquad\Documents\GitHub\ModularVis\ModularVis\ModularVis\EyeXFramework\bin\Debug\Tobii.EyeX.Client.Net20.xml
+C:\Users\Jeff\Documents\ModVis\ModularVis-master\ModularVis\ModularVis\EyeXFramework\bin\Debug\Tobii.EyeX.Client.dll
+C:\Users\Jeff\Documents\ModVis\ModularVis-master\ModularVis\ModularVis\EyeXFramework\bin\Debug\EyeXFramework.dll
+C:\Users\Jeff\Documents\ModVis\ModularVis-master\ModularVis\ModularVis\EyeXFramework\bin\Debug\EyeXFramework.pdb
+C:\Users\Jeff\Documents\ModVis\ModularVis-master\ModularVis\ModularVis\EyeXFramework\bin\Debug\Tobii.EyeX.Client.Net20.dll
+C:\Users\Jeff\Documents\ModVis\ModularVis-master\ModularVis\ModularVis\EyeXFramework\bin\Debug\Tobii.EyeX.Client.Net20.xml
+C:\Users\Jeff\Documents\ModVis\ModularVis-master\ModularVis\ModularVis\EyeXFramework\obj\Debug\EyeXFramework.csprojResolveAssemblyReference.cache
+C:\Users\Jeff\Documents\ModVis\ModularVis-master\ModularVis\ModularVis\EyeXFramework\obj\Debug\EyeXFramework.dll
+C:\Users\Jeff\Documents\ModVis\ModularVis-master\ModularVis\ModularVis\EyeXFramework\obj\Debug\EyeXFramework.pdb

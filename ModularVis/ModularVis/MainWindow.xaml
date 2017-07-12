@@ -12,6 +12,7 @@
                 <ImageBrush ImageSource="testbg.jpg"/>
             </Rectangle.Fill>
         </Rectangle>
+        <Button Name="frz" Content="freeze" Width="50" Height="30" Canvas.Right="0" PreviewMouseDown="frz_PreviewMouseDown"></Button>
         <Rectangle Name="testUIbg" Panel.ZIndex="90" Width="250" Height="450" Fill="White"></Rectangle>
         <Rectangle Name="Black" Panel.ZIndex="100" Width="30" Height="30" Canvas.Left="0" Fill="Black" PreviewMouseDown="Color_Click"/>
         <Rectangle Name="Red" Panel.ZIndex="100" Width="30" Height="30" Canvas.Left="0" Canvas.Top="30" Fill="Red" PreviewMouseDown="Color_Click"></Rectangle>

@@ -26,6 +26,10 @@ namespace ModularVis
     /// </summary>
     public partial class MainWindow : Window
     {
+        //UI
+        bool freeze = false;
+
+        //Vis
         GazeTrack t1;
         GazeLine t2;
         FixPoints t3;
@@ -75,9 +79,12 @@ namespace ModularVis
         {
             Point fromScreen = PointFromScreen(curr);
 
-            t1.next(fromScreen);
-            t2.next(fromScreen);
-            t3.next(fromScreen);
+            if (!freeze)
+            {
+                t1.next(fromScreen);
+                t2.next(fromScreen);
+                t3.next(fromScreen);
+            }
         }
 
         public int max(int a, int b) {
@@ -603,6 +610,10 @@ namespace ModularVis
             private double startWidth, endWidth;
             private double startOpacity, endOpacity;
             private double smooth;
+            //UI
+            private Rectangle overlay;
+            private bool setLen;
+            private int clickedInd;
 
             public GazeLine(Canvas c) {
                 canv = c;
@@ -630,11 +641,87 @@ namespace ModularVis
                     trail[i].Stroke = br;
                     trail[i].StrokeThickness = width;
                     trail[i].StrokeEndLineCap = PenLineCap.Round;
+                    trail[i].Name = "l" + i.ToString();
+                    trail[i].PreviewMouseRightButtonDown += startLengthAdjust;
+                    trail[i].PreviewMouseLeftButtonDown += startWidthAdjust;
+                    trail[i].MouseWheel += opacityAdjust;
                     width -= widthInc;
                     trail[i].Opacity = opacity;
                     opacity -= opacityInc;
                     canv.Children.Add(trail[i]);
                 }
+                //UI
+                overlay = new Rectangle();
+                overlay.Width = 3000;
+                overlay.Height = 3000;
+                overlay.Fill = br;
+                overlay.Opacity = 0;
+                Canvas.SetTop(overlay, 3000);
+                Panel.SetZIndex(overlay, 1000);
+                overlay.PreviewMouseMove += trail_dragged;
+                overlay.PreviewMouseUp += trail_unclicked;
+                canv.Children.Add(overlay);
+            }
+
+            private void opacityAdjust(object sender, MouseWheelEventArgs e) {
+                clickedInd = Convert.ToInt32((sender as Line).Name.Substring(1));
+                if (clickedInd > len / 2)
+                {
+                    endOpacity += (double)e.Delta / 3000;
+                    endOpacity = (endOpacity > 1) ? 1 : endOpacity;
+                    endOpacity = (endOpacity < 0) ? 0 : endOpacity;
+                    setEndOpacity(endOpacity);
+                }
+                else {
+                    startOpacity += (double)e.Delta / 3000;
+                    startOpacity = (startOpacity > 1) ? 1 : startOpacity;
+                    startOpacity = (startOpacity < 0) ? 0 : startOpacity;
+                    setStartOpacity(startOpacity);
+                }
+            }
+
+            private void startWidthAdjust(object sender, MouseButtonEventArgs e) {
+                setLen = false;
+                clickedInd = Convert.ToInt32((sender as Line).Name.Substring(1));
+                Canvas.SetTop(overlay, 0);
+            }
+
+            private void startLengthAdjust(object sender, MouseButtonEventArgs e) {
+                setLen = true;
+                clickedInd = Convert.ToInt32((sender as Line).Name.Substring(1));
+                setLength(clickedInd + 1);
+                Canvas.SetTop(overlay, 0);
+            }
+
+            private void trail_dragged(object sender, MouseEventArgs e) {
+                if (distance(echo[len], e.GetPosition(canv)) > 10 && setLen) {
+                    setLength(e.GetPosition(canv));
+                }
+                if (!setLen) {
+                    Point a = e.GetPosition(canv);
+                    a.X -= echo[clickedInd].X;
+                    a.Y -= echo[clickedInd].Y;
+                    Point b = echo[clickedInd + 1];
+                    b.X -= echo[clickedInd].X;
+                    b.Y -= echo[clickedInd].Y;
+                    double w = distance(echo[clickedInd], e.GetPosition(canv)) * Math.Sin(Math.Acos((a.X * b.X + a.Y * b.Y)/(distance(a,new Point(0,0))*distance(b,new Point(0,0)))));
+                    if (clickedInd > len / 2)
+                    {
+                        setEndWidth(2*w);
+                    }
+                    else {
+                        setStartWidth(2*w);
+                    }
+                }
+            }
+
+            private void trail_unclicked(object sender, MouseButtonEventArgs e) {
+                Canvas.SetTop(overlay, 3000);
+            }
+
+            private double distance(Point a, Point b)
+            {
+                return Math.Sqrt(Math.Pow(a.X - b.X, 2) + Math.Pow(a.Y - b.Y, 2));
             }
 
             public void next(Point p) {
@@ -664,29 +751,71 @@ namespace ModularVis
                     canv.Children.Remove(trail[i]);
                 }
                 len = l;
-                Point curr = new Point(echo[0].X, echo[0].Y);
                 trail = new Line[len];
-                echo = new Point[len + 1];
-                echo[len] = new Point(curr.X, curr.Y);
+                Point[] temp = new Point[len + 1];
+                int setNum = min(echo.Length, temp.Length);
+                Array.Copy(echo, temp, setNum);
+                echo = temp;
                 double width = startWidth;
                 double widthInc = (startWidth - endWidth) / len;
                 double opacity = startOpacity;
                 double opacityInc = (startOpacity - endOpacity) / len;
                 for (int i = 0; i < len; i++)
                 {
-                    echo[i] = new Point(curr.X, curr.Y);
                     trail[i] = new Line();
-                    trail[i].X1 = curr.X;
-                    trail[i].X2 = curr.Y;
-                    trail[i].Y1 = curr.X;
-                    trail[i].Y2 = curr.Y;
+                    trail[i].X1 = echo[i].X;
+                    trail[i].Y1 = echo[i].Y;
+                    trail[i].X2 = echo[i + 1].X;
+                    trail[i].Y2 = echo[i + 1].Y;
                     trail[i].Stroke = br;
                     trail[i].StrokeThickness = width;
                     trail[i].StrokeEndLineCap = PenLineCap.Round;
+                    trail[i].Name = "l" + i.ToString();
+                    trail[i].PreviewMouseRightButtonDown += startLengthAdjust;
+                    trail[i].PreviewMouseLeftButtonDown += startWidthAdjust;
+                    trail[i].MouseWheel += opacityAdjust;
                     width -= widthInc;
                     trail[i].Opacity = opacity;
                     opacity -= opacityInc;
                     canv.Children.Add(trail[i]);
+                }
+            }
+
+            public void setLength(Point p)
+            {
+                len = len + 1;
+                Line[] tempLine = new Line[len];
+                Array.Copy(trail, tempLine, len - 1);
+                trail = tempLine;
+                Point[] tempEcho = new Point[len + 1];
+                int setNum = min(echo.Length, tempEcho.Length);
+                Array.Copy(echo, tempEcho, setNum);
+                echo = tempEcho;
+                echo[len].X = p.X;
+                echo[len].Y = p.Y;
+                trail[len - 1] = new Line();
+                trail[len - 1].X1 = echo[len - 1].X;
+                trail[len - 1].Y1 = echo[len - 1].Y;
+                trail[len - 1].X2 = echo[len].X;
+                trail[len - 1].Y2 = echo[len].Y;
+                trail[len - 1].Stroke = br;
+                trail[len - 1].PreviewMouseRightButtonDown += startLengthAdjust;
+                trail[len - 1].PreviewMouseLeftButtonDown += startWidthAdjust;
+                trail[len - 1].MouseWheel += opacityAdjust;
+                canv.Children.Add(trail[len - 1]);
+                double width = startWidth;
+                double widthInc = (startWidth - endWidth) / len;
+                double opacity = startOpacity;
+                double opacityInc = (startOpacity - endOpacity) / len;
+                for (int i = 0; i < len; i++)
+                {
+                    trail[i].Stroke = br;
+                    trail[i].StrokeThickness = width;
+                    trail[i].StrokeEndLineCap = PenLineCap.Round;
+                    trail[i].Name = "l" + i.ToString();
+                    width -= widthInc;
+                    trail[i].Opacity = opacity;
+                    opacity -= opacityInc;
                 }
             }
 
@@ -739,6 +868,10 @@ namespace ModularVis
             public void setSmooth(double s) {
                 smooth = s;
             }
+
+            private int min(int a, int b) {
+                return (a < b) ? a : b;
+            }
         }
 
         private class GazeTrack : CanColor {
@@ -757,11 +890,16 @@ namespace ModularVis
             private double zoom;
             private BitmapImage src;
             private double ratioX, ratioY;
+            //UI
+            private Rectangle overlay;
+            private bool setInner;
+            private bool setLen;
+
 
             public GazeTrack(Canvas c) {
                 canv = c;
                 smooth = .7;
-                outerRadius = 0;
+                outerRadius = 50;
                 innerRadius = 0;
                 opacity = 1;
                 blur = new TrackBlur(canv, outerRadius);
@@ -776,8 +914,21 @@ namespace ModularVis
                 Canvas.SetLeft(body, 0);
                 Canvas.SetTop(body, 0);
                 Panel.SetZIndex(body, 50);
+                body.PreviewMouseLeftButtonDown += body_leftclicked;
+                body.PreviewMouseRightButtonDown += body_rightclicked;
+                body.MouseWheel += body_scrolled;
                 canv.Children.Add(body);
-
+                //UI
+                overlay = new Rectangle();
+                overlay.Width = 3000;
+                overlay.Height = 3000;
+                overlay.Fill = br;
+                overlay.Opacity = 0;
+                Canvas.SetTop(overlay, 3000);
+                Panel.SetZIndex(overlay, 1000);
+                overlay.PreviewMouseMove += body_dragged;
+                overlay.PreviewMouseUp += body_unclicked;
+                canv.Children.Add(overlay);
                 //EnvColoring
                 env = false;
                 img = "";
@@ -785,6 +936,54 @@ namespace ModularVis
                 src = new BitmapImage();
             }
 
+            private void body_scrolled(object sender, MouseWheelEventArgs e) {
+                opacity += (double)e.Delta / 1500;
+                opacity = (opacity > 1) ? 1 : opacity;
+                opacity = (opacity < 0) ? 0 : opacity;
+                body.Opacity = opacity;
+            }
+
+            private void body_rightclicked(object sender, MouseButtonEventArgs e){
+                setLen = true;
+                blur.remove();
+                Canvas.SetTop(overlay, 0);
+            }
+
+            private void body_leftclicked(object sender, MouseButtonEventArgs e) {
+                setLen = false;
+                double dist = Math.Sqrt(Math.Pow(e.GetPosition(canv).X - (Canvas.GetLeft(body) + outerRadius),2) + Math.Pow(e.GetPosition(canv).Y - (Canvas.GetTop(body) + outerRadius), 2));
+                setInner = dist < innerRadius + (outerRadius - innerRadius) / 2;
+                Canvas.SetTop(overlay, 0);
+            }
+
+            private void body_dragged(object sender, MouseEventArgs e) {
+                double dist = Math.Sqrt(Math.Pow(e.GetPosition(canv).X - (Canvas.GetLeft(body) + outerRadius), 2) + Math.Pow(e.GetPosition(canv).Y - (Canvas.GetTop(body) + outerRadius), 2));
+                if (!setLen)
+                {
+                    if (setInner)
+                    {
+                        dist = (dist < 5) ? 0 : dist;
+                        dist = (dist > outerRadius - 3) ? outerRadius - 3 : dist;
+                        setInnerRadius(dist);
+                    }
+                    else
+                    {
+                        dist = (dist < innerRadius + 3) ? innerRadius + 3 : dist;
+                        setOuterRadius(dist);
+                    }
+                }
+                else {
+                    blur.setLength(e.GetPosition(canv), prev);
+                }
+            }
+
+            private void body_unclicked(object sender, MouseButtonEventArgs e) {
+                Canvas.SetTop(overlay, 3000);
+                if (blur.len == 1) {
+                    blur.setLength(0, prev);
+                }
+            }
+            
             public void next(Point p)
             {
                 prev.X = prev.X * smooth + p.X * (1 - smooth);
@@ -856,6 +1055,8 @@ namespace ModularVis
                 body.Width = outerRadius * 2;
                 body.Height = outerRadius * 2;
                 body.StrokeThickness = outerRadius - innerRadius;
+                Canvas.SetLeft(body, prev.X - outerRadius);
+                Canvas.SetTop(body, prev.Y - outerRadius);
                 blur.setRadius(or);
             }
 
@@ -883,7 +1084,7 @@ namespace ModularVis
             private Brush br;
             private double radius;
             private double stretch;
-            private int len;
+            public int len;
             private double startOpacity, endOpacity;
 
             public TrackBlur(Canvas c, double rad)
@@ -910,8 +1111,28 @@ namespace ModularVis
                     Canvas.SetLeft(lens[i], 0);
                     Canvas.SetTop(lens[i], 0);
                     lens[i].Opacity = opacity;
+                    lens[i].Name = "s" + i.ToString();
+                    lens[i].MouseWheel += lens_scrolled;
                     opacity -= opacityInc;
                     canv.Children.Add(lens[i]);
+                }
+            }
+
+            private void lens_scrolled(object sender, MouseWheelEventArgs e) {
+                double fromBody = distance(echo[0], e.GetPosition(canv)) - radius;
+                Point endLens = new Point(Canvas.GetLeft(lens[0]) + radius, Canvas.GetTop(lens[0]) + radius);
+                double toEnd = distance(echo[0], endLens) + radius;
+                if (fromBody < toEnd){
+                    startOpacity += (double)e.Delta / 3000;
+                    startOpacity = (startOpacity > 1) ? 1 : startOpacity;
+                    startOpacity = (startOpacity < 0) ? 0 : startOpacity;
+                    setStartOpacity(startOpacity);
+                }
+                else {
+                    endOpacity += (double)e.Delta / 3000;
+                    endOpacity = (endOpacity > 1) ? 1 : endOpacity;
+                    endOpacity = (endOpacity < 0) ? 0 : endOpacity;
+                    setEndOpacity(endOpacity);
                 }
             }
 
@@ -1008,12 +1229,14 @@ namespace ModularVis
                 }
                 len = l;
                 lens = new Ellipse[len];
-                echo = new Point[len];
+                Point[] temp = new Point[len];
+                int setNum = min(echo.Length, temp.Length);
+                Array.Copy(echo, temp, setNum);
+                echo = temp;
                 double opacity = startOpacity;
                 double opacityInc = (startOpacity - endOpacity) / len;
                 for (int i = 0; i < len; i++)
                 {
-                    echo[i] = new Point(p.X, p.Y);
                     lens[i] = new Ellipse();
                     lens[i].Width = radius * 2;
                     lens[i].Height = radius * 2;
@@ -1022,17 +1245,84 @@ namespace ModularVis
                     Canvas.SetLeft(lens[i], p.X - radius);
                     Canvas.SetTop(lens[i], p.Y - radius);
                     lens[i].Opacity = opacity;
+                    lens[i].Name = "s" + i.ToString();
+                    lens[i].MouseWheel += lens_scrolled;
                     opacity -= opacityInc;
                     canv.Children.Add(lens[i]);
                 }
             }
 
-            public void setRadius(double r) {
-                radius = r;
-                for (int i = 0; i < len; i++) {
-                    lens[i].Width = radius * 2;
-                    lens[i].Height = radius * 2;
+            public void setLength(Point p, Point source) {
+                Point currEnd;
+                if (len == 0)
+                    currEnd = source;
+                else
+                    currEnd = new Point(Canvas.GetLeft(lens[len - 1]) + radius, Canvas.GetTop(lens[len - 1]) + radius);
+                double dist = distance(currEnd, p);
+                int numAdd = (int)((dist - radius) / stretch);
+                if (numAdd > 0)
+                {
+                    len = len + numAdd;
+                    Ellipse[] tempLens = new Ellipse[len];
+                    Array.Copy(lens, tempLens, lens.Length);
+                    lens = tempLens;
+                    Point[] tempEcho = new Point[len];
+                    int prevLen = echo.Length;
+                    Array.Copy(echo, tempEcho, prevLen);
+                    echo = tempEcho;
+                    for (int i = prevLen; i < echo.Length; i++)
+                    {
+                        echo[i] = new Point(p.X, p.Y);
+                    }
+                    double xRatio = (p.X - currEnd.X) / dist;
+                    double yRatio = (p.Y - currEnd.Y) / dist;
+                    double currStep = stretch;
+                    for (int i = prevLen; i < lens.Length; i++)
+                    {
+                        lens[i] = new Ellipse();
+                        lens[i].Width = radius * 2;
+                        lens[i].Height = radius * 2;
+                        lens[i].Stroke = br;
+                        lens[i].StrokeThickness = stretch;
+                        Canvas.SetLeft(lens[i], currEnd.X + currStep * xRatio - radius);
+                        Canvas.SetTop(lens[i], currEnd.Y + currStep * yRatio - radius);
+                        lens[i].Name = "s" + i.ToString();
+                        lens[i].MouseWheel += lens_scrolled;
+                        currStep += stretch;
+                        canv.Children.Add(lens[i]);
+                    }
+                    setStartOpacity(startOpacity);
                 }
+            }
+
+            public void remove() {
+                for (int i = 0; i < len; i++) {
+                    canv.Children.Remove(lens[i]);
+                }
+                len = 0;
+                echo = new Point[0];
+                lens = new Ellipse[0];
+            }
+
+            public void setRadius(double r) {
+                for (int i = 0; i < len; i++) {
+                    Point center = new Point(Canvas.GetLeft(lens[i]) + radius, Canvas.GetTop(lens[i]) + radius);
+                    lens[i].Width = r * 2;
+                    lens[i].Height = r * 2;
+                    Canvas.SetLeft(lens[i], center.X - lens[i].Width / 2);
+                    Canvas.SetTop(lens[i], center.Y - lens[i].Height / 2);
+                }
+                radius = r;
+            }
+
+            private int min(int a, int b)
+            {
+                return (a < b) ? a : b;
+            }
+
+            private double distance(Point a, Point b)
+            {
+                return Math.Sqrt(Math.Pow(a.X - b.X, 2) + Math.Pow(a.Y - b.Y, 2));
             }
         }
 
@@ -1427,6 +1717,11 @@ namespace ModularVis
         private void Env_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
             t1.setEnv("testbg.jpg");
+        }
+
+        private void frz_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            freeze = !freeze;
         }
     }
 }
