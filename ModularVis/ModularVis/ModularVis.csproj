@@ -116,5 +116,10 @@
   <ItemGroup>
     <Resource Include="testbg.jpg" />
   </ItemGroup>
+  <ItemGroup>
+    <Resource Include="fixIcon.jpg" />
+    <Resource Include="lineIcon.jpg" />
+    <Resource Include="trackIcon.jpg" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

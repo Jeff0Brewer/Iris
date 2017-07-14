@@ -354,6 +354,11 @@ namespace ModularVis
             private double activeLineOpacity;
             private double smooth;
             private int lineInd;
+            //UI
+            private Rectangle overlay;
+            private bool setLen;
+            private bool dotClicked;
+            private int clickedInd;
 
 
             public FixPoints(Canvas c) {
@@ -375,7 +380,7 @@ namespace ModularVis
                 lineWidth = 5;
                 lineOpacity = .5;
                 activeLineOpacity = 0;
-                lineInd = 1;
+                lineInd = len - 2;
                 potentialFix = new Point(0, 0);
                 block = new Point(0, 0);
                 double opacity = startOpacity;
@@ -393,6 +398,10 @@ namespace ModularVis
                     radius -= radiusInc;
                     Canvas.SetLeft(dots[i], -100);
                     Canvas.SetTop(dots[i], -100);
+                    dots[i].Name = "d" + i.ToString();
+                    dots[i].PreviewMouseRightButtonDown += dot_rightClicked;
+                    dots[i].PreviewMouseLeftButtonDown += dot_leftClicked;
+                    dots[i].MouseWheel += dot_scrolled;
                     canv.Children.Add(dots[i]);
                     lines[i] = new Line();
                     lines[i].Opacity = lineOpacity;
@@ -404,8 +413,106 @@ namespace ModularVis
                     lines[i].Y2 = -100;
                     lines[i].StrokeEndLineCap = PenLineCap.Round;
                     lines[i].StrokeStartLineCap = PenLineCap.Round;
+                    lines[i].Name = "f" + i.ToString();
+                    lines[i].MouseWheel += line_scrolled;
+                    lines[i].PreviewMouseLeftButtonDown += line_clicked;
                     canv.Children.Add(lines[i]);
                 }
+                //UI
+                overlay = new Rectangle();
+                overlay.Width = 3000;
+                overlay.Height = 3000;
+                overlay.Fill = dbr;
+                overlay.Opacity = 0;
+                Canvas.SetTop(overlay, 3000);
+                Panel.SetZIndex(overlay, 1000);
+                overlay.PreviewMouseMove += overlay_dragged;
+                overlay.PreviewMouseUp += overlay_unclicked;
+                canv.Children.Add(overlay);
+            }
+
+            private void line_clicked(object sender, MouseButtonEventArgs e){
+                dotClicked = false;
+                clickedInd = Convert.ToInt32((sender as Line).Name.Substring(1));
+                Canvas.SetTop(overlay, 0);
+            }
+
+            private void line_scrolled(object sender, MouseWheelEventArgs e) {
+                lineOpacity += (double)e.Delta / 3000;
+                lineOpacity = (lineOpacity > 1) ? 1 : lineOpacity;
+                lineOpacity = (lineOpacity < 0) ? 0 : lineOpacity;
+                setLineOpacity(lineOpacity);
+            }
+
+            private void dot_scrolled(object sender, MouseWheelEventArgs e) {
+                clickedInd = Convert.ToInt32((sender as Ellipse).Name.Substring(1));
+                if (clickedInd < len / 2){
+                    startOpacity += (double)e.Delta / 3000;
+                    startOpacity = (startOpacity > 1) ? 1 : startOpacity;
+                    startOpacity = (startOpacity < 0) ? 0 : startOpacity;
+                    setStartOpacity(startOpacity);
+                }
+                else {
+                    endOpacity += (double)e.Delta / 3000;
+                    endOpacity = (endOpacity > 1) ? 1 : endOpacity;
+                    endOpacity = (endOpacity < 0) ? 0 : endOpacity;
+                    setEndOpacity(endOpacity);
+                }
+            }
+
+            private void dot_rightClicked(object sender, MouseButtonEventArgs e) {
+                setLen = true;
+                dotClicked = true;
+                clickedInd = Convert.ToInt32((sender as Ellipse).Name.Substring(1));
+                setLength(clickedInd + 1);
+                Canvas.SetTop(overlay, 0);
+            }
+
+            private void dot_leftClicked(object sender, MouseButtonEventArgs e) {
+                setLen = false;
+                dotClicked = true;
+                clickedInd = Convert.ToInt32((sender as Ellipse).Name.Substring(1));
+                Canvas.SetTop(overlay, 0);
+            }
+
+            private void overlay_dragged(object sender, MouseEventArgs e) {
+                Point mouse = e.GetPosition(canv);
+                if (dotClicked && setLen && distance(mouse, points[len - 1]) > 30)
+                {
+                    setLength(e.GetPosition(canv));
+                }
+                else if (dotClicked && !setLen)
+                {
+                    if (clickedInd < len / 2)
+                    {
+                        double newRad = distance(points[clickedInd], mouse);
+                        startRadius = ((newRad - endRadius) / (len - 1 - clickedInd)) * clickedInd + newRad;
+                        startRadius = (startRadius < 0) ? 0 : startRadius;
+                        setStartRadius(startRadius);
+                    }
+                    else
+                    {
+                        double newRad = distance(points[clickedInd], mouse);
+                        endRadius = ((newRad - startRadius) / (clickedInd)) * (len - clickedInd) + newRad;
+                        endRadius = (endRadius < 0) ? 0 : endRadius;
+                        setEndRadius(endRadius);
+                    }
+                }
+                else if (!dotClicked) {
+                    Point root = new Point(lines[clickedInd].X1, lines[clickedInd].Y1);
+                    Point a = mouse;
+                    a.X -= root.X;
+                    a.Y -= root.Y;
+                    Point b = new Point(lines[clickedInd + 1].X2, lines[clickedInd + 1].Y2);
+                    b.X -= root.X;
+                    b.Y -= root.Y;
+                    double w = distance(root, e.GetPosition(canv)) * Math.Sin(Math.Acos((a.X * b.X + a.Y * b.Y) / (distance(a, new Point(0, 0)) * distance(b, new Point(0, 0)))));
+                    setLineWidth(2*w);
+                }
+            }
+
+            private void overlay_unclicked(object sender, MouseButtonEventArgs e) {
+                Canvas.SetTop(overlay, 3000);
             }
 
             public void next(Point p) {
@@ -445,7 +552,7 @@ namespace ModularVis
                             lines[lineInd].Y1 = points[0].Y;
                             lines[lineInd].X2 = points[1].X;
                             lines[lineInd].Y2 = points[1].Y;
-                            lineInd = (lineInd + 1) % (len - 1);
+                            lineInd = (lineInd == 0) ? len - 2 : lineInd - 1;
                         }
                         for (int i = 0; i < len; i++) {
                             Canvas.SetLeft(dots[i], points[i].X - dots[i].Width/2);
@@ -497,45 +604,130 @@ namespace ModularVis
             }
 
             public void setLength(int l) {
-                lineInd = 0;
                 for (int i = 0; i < len; i++) {
                     canv.Children.Remove(dots[i]);
                     canv.Children.Remove(lines[i]);
                 }
+                int prevlen = len;
                 len = l;
                 dots = new Ellipse[len];
-                points = new Point[len];
                 lines = new Line[len];
+                Point[] tempPoints = new Point[len];
+                int setNum = min(points.Length, tempPoints.Length);
+                Array.Copy(points, tempPoints, setNum);
+                points = tempPoints;
+                for (int i = prevlen; i < len; i++) {
+                    points[i] = new Point();
+                }
                 double opacity = startOpacity;
                 double opacityInc = (startOpacity - endOpacity) / len;
                 double radius = startRadius;
                 double radiusInc = (startRadius - endRadius) / len;
                 for (int i = 0; i < len; i++)
                 {
-                    points[i] = new Point(-100, -100);
                     dots[i] = new Ellipse();
                     dots[i].Fill = dbr;
                     dots[i].Opacity = opacity;
                     opacity -= opacityInc;
                     dots[i].Width = radius * 2;
                     dots[i].Height = radius * 2;
+                    Canvas.SetLeft(dots[i], points[i].X - radius);
+                    Canvas.SetTop(dots[i], points[i].Y - radius);
                     radius -= radiusInc;
-                    Canvas.SetLeft(dots[i], -100);
-                    Canvas.SetTop(dots[i], -100);
+                    dots[i].Name = "d" + i.ToString();
+                    dots[i].PreviewMouseRightButtonDown += dot_rightClicked;
+                    dots[i].PreviewMouseLeftButtonDown += dot_leftClicked;
+                    dots[i].MouseWheel += dot_scrolled;
                     canv.Children.Add(dots[i]);
                     lines[i] = new Line();
                     lines[i].Opacity = lineOpacity;
                     lines[i].Stroke = lbr;
                     lines[i].StrokeThickness = lineWidth;
-                    lines[i].X1 = -100;
-                    lines[i].Y1 = -100;
-                    lines[i].X2 = -100;
-                    lines[i].Y2 = -100;
+                    if(i < len - 1)
+                    {
+                        lines[i].X1 = points[i].X;
+                        lines[i].Y1 = points[i].Y;
+                        lines[i].X2 = points[i + 1].X;
+                        lines[i].Y2 = points[i + 1].Y;
+                    }
                     lines[i].StrokeEndLineCap = PenLineCap.Round;
                     lines[i].StrokeStartLineCap = PenLineCap.Round;
+                    lines[i].Name = "f" + i.ToString();
+                    lines[i].MouseWheel += line_scrolled;
+                    lines[i].PreviewMouseLeftButtonDown += line_clicked;
                     canv.Children.Add(lines[i]);
                 }
                 lines[len - 1].Opacity = activeLineOpacity;
+                lineInd = len - 2;
+            }
+
+            public void setLength(Point p)
+            {
+                for (int i = 0; i < len; i++)
+                {
+                    canv.Children.Remove(dots[i]);
+                    canv.Children.Remove(lines[i]);
+                }
+                int prevLen = len;
+                int numNew = (int)Math.Ceiling((double)len / 10);
+                len += numNew;
+                Ellipse[] tempDot = new Ellipse[len];
+                Array.Copy(dots, tempDot, prevLen);
+                dots = tempDot;
+                lines = new Line[len];
+                Point[] tempPoints = new Point[len];
+                int setNum = min(points.Length, tempPoints.Length);
+                Array.Copy(points, tempPoints, setNum);
+                points = tempPoints;
+                Point end = points[prevLen - 1];
+                double stepX = (p.X - end.X) / numNew;
+                double stepY = (p.Y - end.Y) / numNew;
+                int c = 1;
+                for (int i = prevLen; i < len; i++)
+                {
+                    points[i] = new Point(end.X + stepX*c,end.Y + stepY*c);
+                    c++;
+                }
+                double opacity = startOpacity;
+                double opacityInc = (startOpacity - endOpacity) / len;
+                double radius = startRadius;
+                double radiusInc = (startRadius - endRadius) / len;
+                for (int i = 0; i < len; i++)
+                {
+                    dots[i] = new Ellipse();
+                    dots[i].Fill = dbr;
+                    dots[i].Opacity = opacity;
+                    opacity -= opacityInc;
+                    dots[i].Width = radius * 2;
+                    dots[i].Height = radius * 2;
+                    Canvas.SetLeft(dots[i], points[i].X - radius);
+                    Canvas.SetTop(dots[i], points[i].Y - radius);
+                    radius -= radiusInc;
+                    dots[i].Name = "d" + i.ToString();
+                    dots[i].PreviewMouseRightButtonDown += dot_rightClicked;
+                    dots[i].PreviewMouseLeftButtonDown += dot_leftClicked;
+                    dots[i].MouseWheel += dot_scrolled;
+                    canv.Children.Add(dots[i]);
+                    lines[i] = new Line();
+                    lines[i].Opacity = lineOpacity;
+                    lines[i].Stroke = lbr;
+                    lines[i].StrokeThickness = lineWidth;
+                    if (i < len - 1)
+                    {
+                        lines[i].X1 = points[i].X;
+                        lines[i].Y1 = points[i].Y;
+                        lines[i].X2 = points[i + 1].X;
+                        lines[i].Y2 = points[i + 1].Y;
+                    }
+                    lines[i].StrokeEndLineCap = PenLineCap.Round;
+                    lines[i].StrokeStartLineCap = PenLineCap.Round;
+                    lines[i].Name = "f" + i.ToString();
+                    lines[i].MouseWheel += line_scrolled;
+                    lines[i].PreviewMouseLeftButtonDown += line_clicked;
+                    canv.Children.Add(lines[i]);
+                }
+                lines[len - 1].Opacity = activeLineOpacity;
+                lineInd = len - 2;
             }
 
             public void setFixTime(int t) {
@@ -598,6 +790,11 @@ namespace ModularVis
 
             private double distance(Point a, Point b) {
                 return Math.Sqrt(Math.Pow(a.X - b.X, 2) + Math.Pow(a.Y - b.Y, 2));
+            }
+
+            private int min(int a, int b)
+            {
+                return (a < b) ? a : b;
             }
         }
 
@@ -899,7 +1096,7 @@ namespace ModularVis
             public GazeTrack(Canvas c) {
                 canv = c;
                 smooth = .7;
-                outerRadius = 50;
+                outerRadius = 0;
                 innerRadius = 0;
                 opacity = 1;
                 blur = new TrackBlur(canv, outerRadius);
@@ -1119,9 +1316,17 @@ namespace ModularVis
             }
 
             private void lens_scrolled(object sender, MouseWheelEventArgs e) {
-                double fromBody = distance(echo[0], e.GetPosition(canv)) - radius;
-                Point endLens = new Point(Canvas.GetLeft(lens[0]) + radius, Canvas.GetTop(lens[0]) + radius);
-                double toEnd = distance(echo[0], endLens) + radius;
+                Point mouse = e.GetPosition(canv);
+                Point stLens = new Point(Canvas.GetLeft(lens[0]) + radius, Canvas.GetTop(lens[0]) + radius);
+                Point endLens = new Point(Canvas.GetLeft(lens[len-1]) + radius, Canvas.GetTop(lens[len-1]) + radius);
+                double fromBody = distance(stLens, mouse) - radius;
+                double c2c = distance(stLens, endLens);
+                Point a = new Point(mouse.X - endLens.X, mouse.Y - endLens.Y);
+                Point b = new Point(radius*(endLens.X - stLens.X)/c2c,radius*(endLens.Y - stLens.Y)/c2c);
+                double absA = distance(a, new Point(0, 0));
+                double absB = distance(b, new Point(0, 0));
+                double m2el = distance(mouse, endLens);
+                double toEnd = Math.Sqrt(Math.Pow(m2el, 2) + Math.Pow(radius,2) - 2* m2el*radius*(a.X*b.X+a.Y*b.Y)/(absA*absB));
                 if (fromBody < toEnd){
                     startOpacity += (double)e.Delta / 3000;
                     startOpacity = (startOpacity > 1) ? 1 : startOpacity;
