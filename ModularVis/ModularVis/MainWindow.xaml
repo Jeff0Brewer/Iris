@@ -5,83 +5,32 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ModularVis"
         mc:Ignorable="d"
-        Title="MainWindow" Height="350" Width="525" WindowState="Maximized" Loaded="Window_Loaded">
+        Title="MainWindow" Height="350" Width="525" WindowState="Maximized" WindowStyle="None" Loaded="Window_Loaded">
     <Canvas Name="canv">
         <Rectangle Name="bg" Visibility="Visible">
             <Rectangle.Fill>
-                <ImageBrush ImageSource="testbg.jpg"/>
+                <ImageBrush ImageSource="bg.jpg"/>
             </Rectangle.Fill>
         </Rectangle>
-        <Button Name="frz" Content="freeze" Width="50" Height="30" Canvas.Right="0" PreviewMouseDown="frz_PreviewMouseDown"></Button>
-        <Rectangle Name="trDot" Width="30" Height="30" StrokeThickness="2" Stroke="Black">
+        <Rectangle Name="trDot" PreviewMouseDown="trUI" Panel.ZIndex="800" Width="30" Height="30" StrokeThickness="2" Stroke="Black">
             <Rectangle.Fill>
                 <ImageBrush ImageSource="trackIcon.jpg"></ImageBrush>
             </Rectangle.Fill>
         </Rectangle>
-        <Rectangle Name="trLine" Width="30" Height="30" StrokeThickness="2" Canvas.Left="28" Stroke="Black">
+        <Rectangle Name="trLine" PreviewMouseDown="lnUI" Panel.ZIndex="800" Width="30" Height="30" StrokeThickness="2" Canvas.Left="28" Stroke="Black">
             <Rectangle.Fill>
                 <ImageBrush ImageSource="lineIcon.jpg"></ImageBrush>
             </Rectangle.Fill>
         </Rectangle>
-        <Rectangle Name="trFix" Width="30" Height="30" StrokeThickness="2" Canvas.Left="56" Stroke="Black">
+        <Rectangle Name="trFix" PreviewMouseDown="fxUI" Panel.ZIndex="800" Width="30" Height="30" StrokeThickness="2" Canvas.Left="56" Stroke="Black">
             <Rectangle.Fill>
                 <ImageBrush ImageSource="fixIcon.jpg"></ImageBrush>
             </Rectangle.Fill>
         </Rectangle>
-        <Rectangle Name="testUIbg" Panel.ZIndex="90" Width="250" Height="450" Fill="White" Canvas.Top="290"/>
-        <Rectangle Name="Black" Panel.ZIndex="100" Width="30" Height="30" Fill="Black" PreviewMouseDown="Color_Click" Canvas.Top="290"/>
-        <Rectangle Name="Red" Panel.ZIndex="100" Width="30" Height="30" Canvas.Top="320" Fill="Red" PreviewMouseDown="Color_Click"/>
-        <Rectangle Name="Green" Panel.ZIndex="100" Width="30" Height="30" Canvas.Top="350" Fill="Green" PreviewMouseDown="Color_Click"/>
-        <Rectangle Name="Blue" Panel.ZIndex="100" Width="30" Height="30" Canvas.Top="380" Fill="Blue" PreviewMouseDown="Color_Click"/>
-        <Rectangle Name="Env" Panel.ZIndex="100" Width="30" Height="30" Canvas.Top="410" Fill="WhiteSmoke" PreviewMouseDown="Env_PreviewMouseDown"/>
-        <Button Name="TrDot" Panel.ZIndex="100" Width="30" Height="20" Canvas.Top="440" Content="dot" PreviewMouseDown="TrDot_PreviewMouseDown"/>
-        <Button Name="TrShad" Panel.ZIndex="100" Width="30" Height="20" Canvas.Top="460" Content="shad" PreviewMouseDown="TrShad_PreviewMouseDown"/>
-        <Button Name="Lin" Panel.ZIndex="100" Width="30" Height="20" Canvas.Top="480" Content="line" PreviewMouseDown="Lin_PreviewMouseDown"/>
-        <Button Name="FDot" Panel.ZIndex="100" Width="30" Height="20" Canvas.Top="500" Content="fix" PreviewMouseDown="FDot_PreviewMouseDown"/>
-        <Button Name="FLin" Panel.ZIndex="100" Width="30" Height="20" Canvas.Top="520" Content="fline" PreviewMouseDown="FLin_PreviewMouseDown"/>
-        <TextBox Panel.ZIndex="100" Name="SmoothEnter" Width="100" PreviewKeyDown="SmoothEnter_PreviewKeyDown" Canvas.Left="30" Canvas.Top="290"></TextBox>
-        <TextBlock Foreground="Red" Panel.ZIndex="100" Text="smoothness" Canvas.Left="130" Canvas.Top="290"></TextBlock>
-        <TextBox Panel.ZIndex="100" Name="OpacityEnter" Width="100" Canvas.Top="350" PreviewKeyDown="OpacityEnter_PreviewKeyDown" Canvas.Left="30"></TextBox>
-        <TextBlock Foreground="Red" Panel.ZIndex="100" Text="track opacity" Canvas.Left="130" Canvas.Top="350"></TextBlock>
-        <TextBox Panel.ZIndex="100" Name="TrackInnerRad" Width="100" Canvas.Top="310" PreviewKeyDown="TrackInnerRad_PreviewKeyDown" Canvas.Left="30"/>
-        <TextBlock Foreground="Red" Panel.ZIndex="100" Text="track inner radius" Canvas.Left="130" Canvas.Top="310"></TextBlock>
-        <TextBox Panel.ZIndex="100" Name="TrackOuterRad" Width="100" Canvas.Top="330" PreviewKeyDown="TrackOuterRad_PreviewKeyDown" Canvas.Left="30"/>
-        <TextBlock Foreground="Red" Panel.ZIndex="100" Text="track outer radius" Canvas.Left="130" Canvas.Top="330"></TextBlock>
-        <TextBox Panel.ZIndex="100" Name="LineLength" Width="100" Canvas.Top="370" PreviewKeyDown="LineLength_PreviewKeyDown" Canvas.Left="30"></TextBox>
-        <TextBlock Foreground="Red" Panel.ZIndex="100" Text="line length" Canvas.Left="130" Canvas.Top="370"></TextBlock>
-        <TextBox Panel.ZIndex="100" Name="LineStartWidth" Width="100" Canvas.Top="390" PreviewKeyDown="LineStartWidth_PreviewKeyDown" Canvas.Left="30"></TextBox>
-        <TextBlock Foreground="Red" Panel.ZIndex="100" Text="line start width" Canvas.Left="130" Canvas.Top="390"></TextBlock>
-        <TextBox Panel.ZIndex="100" Name="LineEndWidth" Width="100" Canvas.Top="410" PreviewKeyDown="LineEndWidth_PreviewKeyDown" Canvas.Left="30"></TextBox>
-        <TextBlock Foreground="Red" Panel.ZIndex="100" Text="line end width" Canvas.Left="130" Canvas.Top="410"></TextBlock>
-        <TextBox Panel.ZIndex="100" Name="LineStartOpacity" Width="100" Canvas.Top="430" PreviewKeyDown="LineStartOpacity_PreviewKeyDown" Canvas.Left="30"></TextBox>
-        <TextBlock Foreground="Red" Panel.ZIndex="100" Text="line start opacity" Canvas.Left="130" Canvas.Top="430"></TextBlock>
-        <TextBox Panel.ZIndex="100" Name="LineEndOpacity" Width="100" Canvas.Top="450" PreviewKeyDown="LineEndOpacity_PreviewKeyDown" Canvas.Left="30"></TextBox>
-        <TextBlock Foreground="Red" Panel.ZIndex="100" Text="line end opacity" Canvas.Left="130" Canvas.Top="450"></TextBlock>
-        <TextBox Panel.ZIndex="100" Name="ShadowLength" Width="100" Canvas.Top="470" PreviewKeyDown="ShadowLength_PreviewKeyDown" Canvas.Left="30"></TextBox>
-        <TextBlock Foreground="Red" Panel.ZIndex="100" Text="shadow length" Canvas.Left="130" Canvas.Top="470"></TextBlock>
-        <TextBox Panel.ZIndex="100" Name="ShadowStartOpacity" Width="100" Canvas.Top="490" PreviewKeyDown="ShadowStartOpacity_PreviewKeyDown" Canvas.Left="30"></TextBox>
-        <TextBlock Foreground="Red" Panel.ZIndex="100" Text="shadow start opacity" Canvas.Left="130" Canvas.Top="490"></TextBlock>
-        <TextBox Panel.ZIndex="100" Name="ShadowEndOpacity" Width="100" Canvas.Top="510" PreviewKeyDown="ShadowEndOpacity_PreviewKeyDown" Canvas.Left="30"></TextBox>
-        <TextBlock Foreground="Red" Panel.ZIndex="100" Text="shadow end opacity" Canvas.Left="130" Canvas.Top="510"></TextBlock>
-        <TextBox Panel.ZIndex="100" Name="FixLength" Width="100" Canvas.Top="530" PreviewKeyDown="FixLength_PreviewKeyDown" Canvas.Left="30"></TextBox>
-        <TextBlock  Foreground="Red" Panel.ZIndex="100" Text="fix length" Canvas.Left="130" Canvas.Top="530"></TextBlock>
-        <TextBox Panel.ZIndex="100" Name="FixStartOpacity" Width="100" Canvas.Top="550" PreviewKeyDown="FixStartOpacity_PreviewKeyDown" Canvas.Left="30"></TextBox>
-        <TextBlock Foreground="Red" Panel.ZIndex="100" Text="fix start opacity" Canvas.Left="130" Canvas.Top="550"></TextBlock>
-        <TextBox Panel.ZIndex="100" Name="FixEndOpacity" Width="100" Canvas.Top="570" PreviewKeyDown="FixEndOpacity_PreviewKeyDown" Canvas.Left="30"></TextBox>
-        <TextBlock Foreground="Red" Panel.ZIndex="100" Text="fix end opacity" Canvas.Left="130" Canvas.Top="570"></TextBlock>
-        <TextBox Panel.ZIndex="100" Name="FixStartRadius" Width="100" Canvas.Top="590" PreviewKeyDown="FixStartRadius_PreviewKeyDown" Canvas.Left="30"></TextBox>
-        <TextBlock Foreground="Red" Panel.ZIndex="100" Text="fix start radius" Canvas.Left="130" Canvas.Top="590"></TextBlock>
-        <TextBox Panel.ZIndex="100" Name="FixEndRadius" Width="100" Canvas.Top="610" PreviewKeyDown="FixEndRadius_PreviewKeyDown" Canvas.Left="30"></TextBox>
-        <TextBlock Foreground="Red" Panel.ZIndex="100" Text="fix end radius" Canvas.Left="130" Canvas.Top="610"></TextBlock>
-        <TextBox Panel.ZIndex="100" Name="FixTime" Width="100" Canvas.Top="630" PreviewKeyDown="FixTime_PreviewKeyDown" Canvas.Left="30"></TextBox>
-        <TextBlock Foreground="Red" Panel.ZIndex="100" Text="fix time" Canvas.Left="130" Canvas.Top="630"></TextBlock>
-        <TextBox Panel.ZIndex="100" Name="FixLineWidth" Width="100" Canvas.Top="650" PreviewKeyDown="FixLineWidth_PreviewKeyDown" Canvas.Left="30"></TextBox>
-        <TextBlock Foreground="Red" Panel.ZIndex="100" Text="fix line width" Canvas.Left="130" Canvas.Top="650"></TextBlock>
-        <TextBox Panel.ZIndex="100" Name="FixLineOpacity" Width="100" Canvas.Top="670" PreviewKeyDown="FixLineOpacity_PreviewKeyDown" Canvas.Left="30"></TextBox>
-        <TextBlock Foreground="Red" Panel.ZIndex="100" Text="fix line opacity" Canvas.Left="130" Canvas.Top="670"></TextBlock>
-        <TextBox Panel.ZIndex="100" Name="FixActiveLineOpacity" Width="100" Canvas.Top="690" PreviewKeyDown="FixActiveLineOpacity_PreviewKeyDown" Canvas.Left="30"></TextBox>
-        <TextBlock Foreground="Red" Panel.ZIndex="100" Text="fix active line opacity" Canvas.Left="130" Canvas.Top="690"></TextBlock>
-        <TextBox Panel.ZIndex="100" Name="EnvZoom" Width="100" Canvas.Top="710" PreviewKeyDown="EnvZoom_PreviewKeyDown" Canvas.Left="30"></TextBox>
-        <TextBlock Foreground="Red" Panel.ZIndex="100" Text="env zoom" Canvas.Left="130" Canvas.Top="710"></TextBlock>
+        <Rectangle Name="util" PreviewMouseDown="utUI" Panel.ZIndex="800" Width="30" Height="30" StrokeThickness="2" Canvas.Left="84" Stroke="Black">
+            <Rectangle.Fill>
+                <ImageBrush ImageSource="utilIcon.jpg"></ImageBrush>
+            </Rectangle.Fill>
+        </Rectangle>
     </Canvas>
 </Window>

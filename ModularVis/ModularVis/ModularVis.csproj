@@ -121,5 +121,11 @@
     <Resource Include="lineIcon.jpg" />
     <Resource Include="trackIcon.jpg" />
   </ItemGroup>
+  <ItemGroup>
+    <Resource Include="utilIcon.jpg" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="bg.jpg" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
