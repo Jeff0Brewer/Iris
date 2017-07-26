@@ -25,6 +25,8 @@ namespace ModularVis
 {
     public partial class MainWindow : Window
     {
+
+#region global variables
         //UI
         Canvas trackUI;
         Canvas lineUI;
@@ -32,7 +34,6 @@ namespace ModularVis
         Canvas utilUI;
         bool freeze = false;
         SwatchControl swc;
-        int bgInd;
 
         //Vis
         GazeTrack t1;
@@ -51,13 +52,30 @@ namespace ModularVis
         //Recording
         RecordInterface ri;
         String recordPath = "C:/Users/ResearchSquad/Documents/VisSaves/Recordings/rd.txt";
+        String tempRecordPath1 = "C:/Users/ResearchSquad/Documents/VisSaves/Recordings/trd1.txt";
+        String tempRecordPath2 = "C:/Users/ResearchSquad/Documents/VisSaves/Recordings/trd2.txt";
         TextWriter rw;
         bool recording = false;
         bool playing = false;
 
+        //Background
+        String[] backgrounds = {"blankBg.jpg",
+                                "codeBg.jpg",
+                                "xrayBg.jpg",
+                                "mapBg.jpg",
+                                "graphBg.jpg",
+                                "vdashCam.mp4",
+                                "vbears.mp4"};
+        int currBgInd = 0;
+        MediaElement vid = null;
+        bool looped = false;
+
+        //EyeX
         EyeXHost eyeHost;
         Point curr = new Point(0, 0);
+#endregion
 
+#region init
         public MainWindow()
         {
             InitializeComponent();
@@ -70,45 +88,12 @@ namespace ModularVis
             gaze.Next += gazePoint;
         }
 
-        private void onKeyDown(object sender, KeyEventArgs e) {
-            if (e.Key.Equals(Key.Space))
-            {
-                freeze = !freeze;
-                bg.Opacity = (freeze) ? .5 : 1;
-            }
-            else if (e.Key.Equals(Key.Right) || e.Key.Equals(Key.Left))
-            {
-                bgInd = (bgInd + 1) % 2;
-                String img = "";
-                switch (bgInd)
-                {
-                    case 0:
-                        img = "bg.jpg";
-                        break;
-                    case 1:
-                        img = "testbg.jpg";
-                        break;
-                }
-                BitmapImage src = new BitmapImage();
-                src.BeginInit();
-                src.UriSource = new Uri(img, UriKind.Relative);
-                src.CacheOption = BitmapCacheOption.OnLoad;
-                src.EndInit();
-                bg.Fill = new ImageBrush(src);
-                t1.setEnvImg(img);
-            }
-            else if (e.Key.Equals(Key.Escape)) {
-                this.Close();
-            }
-        }
-
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             bg.Width = canv.ActualWidth;
             bg.Height = canv.ActualHeight;
-            bgInd = 0;
 
-            t1 = new GazeTrack(canv, "bg.jpg");
+            t1 = new GazeTrack(canv, "blankBg.jpg");
             t2 = new GazeLine(canv);
             t3 = new FixPoints(canv);
 
@@ -149,7 +134,7 @@ namespace ModularVis
 
             fixUI = new Canvas();
             fixUI.Width = 220;
-            fixUI.Height = 90;
+            fixUI.Height = 115;
             fixUI.Background = new SolidColorBrush(Colors.White);
             Panel.SetZIndex(fixUI, 800);
             Canvas.SetLeft(fixUI, 0);
@@ -158,8 +143,9 @@ namespace ModularVis
             canv.Children.Add(fixUI);
 
             Toggle tf1 = new Toggle("visible", 10, 10, t3.togVis, t3.getVis, fixUI);
+            Toggle tf2 = new Toggle("active line", 10, 35, t3.togActiveLine, t3.getActiveLine, fixUI);
             SliderControl sc1 = new SliderControl(fixUI);
-            Slider sf1 = new Slider("fixation time", 10, 35, 1, 100, t3.setFixTime, sc1, fixUI);
+            Slider sf1 = new Slider("fixation time", 10, 60, 1, 100, t3.setFixTime, sc1, fixUI);
 
             #endregion
 
@@ -167,7 +153,7 @@ namespace ModularVis
 
             utilUI = new Canvas();
             utilUI.Width = 220;
-            utilUI.Height = 240;
+            utilUI.Height = 230;
             utilUI.Background = new SolidColorBrush(Colors.White);
             Panel.SetZIndex(utilUI, 800);
             Canvas.SetLeft(utilUI, 0);
@@ -175,30 +161,35 @@ namespace ModularVis
             utilUI.Visibility = Visibility.Hidden;
             canv.Children.Add(utilUI);
 
+            double swatchTop = 12.5;
+            double slideTop = swatchTop + 60;
+            double recordTop = slideTop + 90;
+            double loadTop = recordTop + 30;
+
             SliderControl sc2 = new SliderControl(utilUI);
-            Slider su1 = new Slider("smoothness", 10, 10, 0, .99, setSmoothness, sc2, utilUI);
-            Slider su2 = new Slider("background blur", 10, 56, 0, 10, setBgBlur, sc2, utilUI);
-            swc = new SwatchControl(new Action<Brush>[4] {t1.setFillColor,t1.blur.setFillColor,t2.setFillColor,t3.setFillColor},canv);
-            Swatch s1 = new Swatch(Colors.Black, 12.5, 112, 20, swc, utilUI);
-            Swatch s2 = new Swatch(Colors.Red, 37.5, 112, 20, swc, utilUI);
-            Swatch s3 = new Swatch(Colors.Green, 62.5, 112, 20, swc, utilUI);
-            Swatch s4 = new Swatch(Colors.Blue, 87.5, 112, 20, swc, utilUI);
-            Swatch s5 = new Swatch(Colors.Yellow, 112.5, 112, 20, swc, utilUI);
-            Swatch s6 = new Swatch(Colors.Orange, 137.5, 112, 20, swc, utilUI);
-            Swatch s7 = new Swatch(Colors.Purple, 162.5, 112, 20, swc, utilUI);
-            Swatch s8 = new Swatch(Colors.Pink, 187.5, 112, 20, swc, utilUI);
-            Swatch s9 = new Swatch(Colors.Gray, 12.5, 137, 20, swc, utilUI);
-            Swatch s10 = new Swatch(Colors.DarkRed, 37.5, 137, 20, swc, utilUI);
-            Swatch s11 = new Swatch(Colors.LightGreen, 62.5, 137, 20, swc, utilUI);
-            Swatch s12 = new Swatch(Colors.DarkBlue, 87.5, 137, 20, swc, utilUI);
-            Swatch s13 = new Swatch(Colors.LightGoldenrodYellow, 112.5, 137, 20, swc, utilUI);
-            Swatch s14 = new Swatch(Colors.DarkOrange, 137.5, 137, 20, swc, utilUI);
-            Swatch s15 = new Swatch(Colors.Violet, 162.5, 137, 20, swc, utilUI);
-            Swatch s16 = new Swatch(Colors.HotPink, 187.5, 137, 20, swc, utilUI);
+            Slider su1 = new Slider("smoothness", 10, slideTop, 0, .99, setSmoothness, sc2, utilUI);
+            Slider su2 = new Slider("background blur", 10, slideTop + 40, 0, 10, setBgBlur, sc2, utilUI);
+            swc = new SwatchControl(new Action<Brush>[4] { t1.setFillColor, t1.blur.setFillColor, t2.setFillColor, t3.setFillColor }, canv);
+            Swatch s1 = new Swatch(Colors.Black, 12.5, swatchTop, 20, swc, utilUI);
+            Swatch s2 = new Swatch(Colors.LightGray, 37.5, swatchTop, 20, swc, utilUI);
+            Swatch s3 = new Swatch(Colors.Red, 62.5, swatchTop, 20, swc, utilUI);
+            Swatch s4 = new Swatch(Colors.Green, 87.5, swatchTop, 20, swc, utilUI);
+            Swatch s5 = new Swatch(Colors.Blue, 112.5, swatchTop, 20, swc, utilUI);
+            Swatch s6 = new Swatch(Colors.Yellow, 137.5, swatchTop, 20, swc, utilUI);
+            Swatch s7 = new Swatch(Colors.Orange, 162.5, swatchTop, 20, swc, utilUI);
+            Swatch s8 = new Swatch(Colors.Purple, 187.5, swatchTop, 20, swc, utilUI);
+            Swatch s9 = new Swatch(Colors.Gray, 12.5, swatchTop + 25, 20, swc, utilUI);
+            Swatch s10 = new Swatch(Colors.White, 37.5, swatchTop + 25, 20, swc, utilUI);
+            Swatch s11 = new Swatch(Colors.DarkRed, 62.5, swatchTop + 25, 20, swc, utilUI);
+            Swatch s12 = new Swatch(Colors.LightGreen, 87.5, swatchTop + 25, 20, swc, utilUI);
+            Swatch s13 = new Swatch(Colors.DarkBlue, 112.5, swatchTop + 25, 20, swc, utilUI);
+            Swatch s14 = new Swatch(Colors.LightGoldenrodYellow, 137.5, swatchTop + 25, 20, swc, utilUI);
+            Swatch s15 = new Swatch(Colors.DarkOrange, 162.5, swatchTop + 25, 20, swc, utilUI);
+            Swatch s16 = new Swatch(Colors.HotPink, 187.5, swatchTop + 25, 20, swc, utilUI);
 
-            ri = new RecordInterface(10,170,recordPath,recordGaze,stopRecord,startPlayback,stopPlayback,utilUI);
+            ri = new RecordInterface(10, recordTop, recordPath, recordGaze, stopRecord, startPlayback, stopPlayback, utilUI);
 
-            loadVisFiles(10,200,utilUI);
+            loadVisFiles(10, loadTop, utilUI);
 
             #endregion
 
@@ -211,6 +202,55 @@ namespace ModularVis
             dispatcherTimer.Start();
         }
 
+#endregion
+
+        private void onKeyDown(object sender, KeyEventArgs e) {
+            if (e.Key.Equals(Key.Space)){
+                freeze = !freeze;
+                picFreezeSync(freeze);
+                if (vid != null && vid.IsLoaded) {
+                    vidFreezeSync(freeze);
+                }
+            }
+            else if (e.Key.Equals(Key.Left) || e.Key.Equals(Key.Right)){
+                currBgInd = (e.Key.Equals(Key.Left)) ? max(currBgInd - 1, 0) : min(currBgInd + 1, backgrounds.Length - 1);
+                String file = backgrounds[currBgInd];
+                picFreezeSync(freeze);
+                canv.Children.Remove(vid);
+                vid = null;
+                ri.detatchMedia();
+                if (file.Substring(0, 1).Equals("v")) {
+                    vid = new MediaElement();
+                    vid.LoadedBehavior = System.Windows.Controls.MediaState.Manual;
+                    vid.UnloadedBehavior = System.Windows.Controls.MediaState.Manual;
+                    vid.Source = new Uri(file.Substring(1), UriKind.Relative);
+                    vid.Width = canv.ActualWidth;
+                    Canvas.SetTop(vid, 100);
+                    Panel.SetZIndex(vid, 0);
+                    canv.Children.Add(vid);
+                    vid.Play();
+                    Thread.Sleep(50);
+                    vidFreezeSync(freeze);
+                    vid.MediaEnded += vid_ended;
+                    ri.attachMedia(vid, currBgInd);
+                    file = "blackBg.jpg";
+                }
+                BitmapImage src = new BitmapImage();
+                src.BeginInit();
+                src.UriSource = new Uri(file, UriKind.Relative);
+                src.CacheOption = BitmapCacheOption.OnLoad;
+                src.EndInit();
+                ImageBrush imBr = new ImageBrush(src);
+                imBr.Stretch = Stretch.UniformToFill;
+                bg.Fill = imBr;
+
+                t1.setEnvImg(file);
+            }
+            else if (e.Key.Equals(Key.Escape)) {
+                this.Close();
+            }
+        }
+        
         public String saveCurr(String name) {
             int savNum = 0;
             String currPath = savPath + name + ".txt";
@@ -232,7 +272,7 @@ namespace ModularVis
 
         public void loadVis(String name) {
             String path = savPath + name + ".txt";
-            if (File.Exists(path)){
+            if (File.Exists(path)) {
                 String[] loaded = File.ReadAllLines(path);
                 loadOddParams(loaded[0]);
                 t1.loadFromParams(loaded[1]);
@@ -243,7 +283,7 @@ namespace ModularVis
 
         public void deleteSave(String name) {
             String p;
-            if(File.Exists(p = savPath + name + ".txt"))
+            if (File.Exists(p = savPath + name + ".txt"))
                 File.Delete(p);
         }
 
@@ -252,15 +292,21 @@ namespace ModularVis
             TextBar prev = null;
             foreach (String file in files) {
                 TextBar tb = new TextBar(ix, iy, saveCurr, loadVis, deleteSave, c, file.Substring(savPath.Length, file.Length - savPath.Length - 4));
-                if(prev != null)
+                if (prev != null)
                     prev.next = tb;
                 prev = tb;
                 iy += 30;
             }
-            if(prev != null)
+            if (prev != null)
+            {
                 prev.next = new TextBar(ix, iy, saveCurr, loadVis, deleteSave, c);
+                prev.next.activate();
+            }
             else
+            {
                 prev = new TextBar(ix, iy, saveCurr, loadVis, deleteSave, c);
+                prev.activate();
+            }
             c.Height += files.Length * 30;
         }
 
@@ -282,7 +328,6 @@ namespace ModularVis
             private Line[] lines;
             private double lineWidth;
             private double lineOpacity;
-            private double activeLineOpacity;
             private double smooth;
             private int lineInd;
             //UI
@@ -292,6 +337,7 @@ namespace ModularVis
             private int clickedInd;
             private int savLen;
             private bool visible;
+            private bool activeLineVisible;
             public new bool colorActive;
             public new Brush cBr;
 
@@ -301,6 +347,7 @@ namespace ModularVis
                 canv = c;
                 savLen = 2;
                 visible = false;
+                activeLineVisible = false;
                 len = 0;
                 startRadius = 35;
                 endRadius = 10;
@@ -317,7 +364,6 @@ namespace ModularVis
                 lines = new Line[len];
                 lineWidth = 5;
                 lineOpacity = .5;
-                activeLineOpacity = 0;
                 lineInd = len - 2;
                 potentialFix = new Point(0, 0);
                 block = new Point(0, 0);
@@ -342,7 +388,7 @@ namespace ModularVis
                     lines[i].MouseWheel += line_scrolled;
                     lines[i].PreviewMouseLeftButtonDown += line_clicked;
                     lines[i].PreviewMouseUp += line_color;
-                    canv.Children.Add(lines[i]);
+
                     dots[i] = new Ellipse();
                     dots[i].Fill = dbr;
                     dots[i].Opacity = opacity;
@@ -357,7 +403,11 @@ namespace ModularVis
                     dots[i].PreviewMouseLeftButtonDown += dot_leftClicked;
                     dots[i].MouseWheel += dot_scrolled;
                     dots[i].PreviewMouseUp += dot_color;
+
+                    Panel.SetZIndex(dots[i], 5);
+                    Panel.SetZIndex(lines[i], 6);
                     canv.Children.Add(dots[i]);
+                    canv.Children.Add(lines[i]);
                 }
                 //UI
                 overlay = new Rectangle();
@@ -372,6 +422,9 @@ namespace ModularVis
                 canv.Children.Add(overlay);
                 colorActive = false;
                 cBr = null;
+
+                if (len > 0 && !activeLineVisible)
+                    lines[len - 1].Opacity = 0;
             }
 
             public String getParams()
@@ -501,7 +554,7 @@ namespace ModularVis
             private void dot_scrolled(object sender, MouseWheelEventArgs e)
             {
                 clickedInd = Convert.ToInt32((sender as Ellipse).Name.Substring(1));
-                if (clickedInd < len / 2)
+                if (clickedInd < (double)len / 2)
                 {
                     startOpacity += (double)e.Delta / 3000;
                     startOpacity = (startOpacity > 1) ? 1 : startOpacity;
@@ -537,7 +590,7 @@ namespace ModularVis
             private void overlay_dragged(object sender, MouseEventArgs e)
             {
                 Point mouse = e.GetPosition(canv);
-                if (dotClicked && setLen && distance(mouse, points[len - 1]) > 30)
+                if (dotClicked && setLen && distance(mouse, points[len - 1]) > startRadius + 30)
                 {
                     setLength(e.GetPosition(canv));
                 }
@@ -658,16 +711,10 @@ namespace ModularVis
                 }
             }
 
-            public void setActiveLineOpacity(double o)
-            {
-                activeLineOpacity = o;
-                lines[len - 1].Opacity = activeLineOpacity;
-            }
-
             public void setLineOpacity(double o)
             {
                 lineOpacity = o;
-                for (int i = 0; i < len - 1; i++)
+                for (int i = 0; i < len; i++)
                 {
                     lines[i].Opacity = lineOpacity;
                 }
@@ -675,6 +722,9 @@ namespace ModularVis
 
             public void setLength(int l)
             {
+                Point savCurr = new Point(0,0);
+                if (len > 0)
+                    savCurr = new Point(lines[len - 1].X1, lines[len - 1].Y1);
                 for (int i = 0; i < len; i++)
                 {
                     canv.Children.Remove(dots[i]);
@@ -715,7 +765,7 @@ namespace ModularVis
                     lines[i].MouseWheel += line_scrolled;
                     lines[i].PreviewMouseLeftButtonDown += line_clicked;
                     lines[i].PreviewMouseUp += line_color;
-                    canv.Children.Add(lines[i]);
+
                     dots[i] = new Ellipse();
                     dots[i].Fill = dbr;
                     dots[i].Opacity = opacity;
@@ -730,15 +780,28 @@ namespace ModularVis
                     dots[i].PreviewMouseLeftButtonDown += dot_leftClicked;
                     dots[i].MouseWheel += dot_scrolled;
                     dots[i].PreviewMouseUp += dot_color;
+
+                    Panel.SetZIndex(dots[i], 5);
+                    Panel.SetZIndex(lines[i], 6);
                     canv.Children.Add(dots[i]);
+                    canv.Children.Add(lines[i]);
                 }
                 if (len > 0)
-                    lines[len - 1].Opacity = activeLineOpacity;
+                {
+                    lines[len - 1].X1 = savCurr.X;
+                    lines[len - 1].Y1 = savCurr.Y;
+                    lines[len - 1].X2 = points[0].X;
+                    lines[len - 1].Y2 = points[0].Y;
+                }
                 lineInd = len - 2;
+
+                if (len > 0 && !activeLineVisible)
+                    lines[len - 1].Opacity = 0;
             }
 
             public void setLength(Point p)
             {
+                Point savCurr = new Point(lines[len - 1].X1, lines[len - 1].Y1);
                 for (int i = 0; i < len; i++)
                 {
                     canv.Children.Remove(dots[i]);
@@ -787,7 +850,7 @@ namespace ModularVis
                     lines[i].MouseWheel += line_scrolled;
                     lines[i].PreviewMouseLeftButtonDown += line_clicked;
                     lines[i].PreviewMouseUp += line_color;
-                    canv.Children.Add(lines[i]);
+
                     dots[i] = new Ellipse();
                     dots[i].Fill = dbr;
                     dots[i].Opacity = opacity;
@@ -802,10 +865,20 @@ namespace ModularVis
                     dots[i].PreviewMouseLeftButtonDown += dot_leftClicked;
                     dots[i].MouseWheel += dot_scrolled;
                     dots[i].PreviewMouseUp += dot_color;
+
+                    Panel.SetZIndex(dots[i], 5);
+                    Panel.SetZIndex(lines[i], 6);
                     canv.Children.Add(dots[i]);
+                    canv.Children.Add(lines[i]);
                 }
-                lines[len - 1].Opacity = activeLineOpacity;
+                lines[len - 1].X1 = savCurr.X;
+                lines[len - 1].Y1 = savCurr.Y;
+                lines[len - 1].X2 = points[0].X;
+                lines[len - 1].Y2 = points[0].Y;
                 lineInd = len - 2;
+
+                if (len > 0 && !activeLineVisible)
+                    lines[len - 1].Opacity = 0;
             }
 
             public void setFixTime(double t)
@@ -872,6 +945,21 @@ namespace ModularVis
             public void setSmooth(double s)
             {
                 smooth = s;
+            }
+
+            public bool togActiveLine() {
+                if (len > 0){
+                    activeLineVisible = !activeLineVisible;
+                    if (activeLineVisible)
+                        lines[len - 1].Opacity = lineOpacity;
+                    else
+                        lines[len - 1].Opacity = 0;
+                }
+                return activeLineVisible;
+            }
+
+            public bool getActiveLine() {
+                return activeLineVisible;
             }
 
             private double distance(Point a, Point b)
@@ -941,6 +1029,7 @@ namespace ModularVis
                     width -= widthInc;
                     trail[i].Opacity = opacity;
                     opacity -= opacityInc;
+                    Panel.SetZIndex(trail[i], 7);
                     canv.Children.Add(trail[i]);
                 }
                 //UI
@@ -999,7 +1088,7 @@ namespace ModularVis
                     key = "b:";
                     currInd = par.IndexOf(key, currInd) + key.Length;
                     endInd = par.IndexOf(" ", currInd);
-                    setColor(0,brushFromHex(par.Substring(currInd, endInd - currInd + 1)));
+                    setColor(0, brushFromHex(par.Substring(currInd, endInd - currInd + 1)));
 
                     visible = (len > 0);
                 }
@@ -1171,6 +1260,7 @@ namespace ModularVis
                     width -= widthInc;
                     trail[i].Opacity = opacity;
                     opacity -= opacityInc;
+                    Panel.SetZIndex(trail[i], 7);
                     canv.Children.Add(trail[i]);
                 }
             }
@@ -1197,6 +1287,7 @@ namespace ModularVis
                 trail[len - 1].PreviewMouseLeftButtonDown += startWidthAdjust;
                 trail[len - 1].MouseWheel += opacityAdjust;
                 trail[len - 1].PreviewMouseUp += trail_color;
+                Panel.SetZIndex(trail[len - 1], 7);
                 canv.Children.Add(trail[len - 1]);
                 double width = startWidth;
                 double widthInc = (startWidth - endWidth) / len;
@@ -1354,7 +1445,7 @@ namespace ModularVis
             public String getParams()
             {
                 String par = "";
-                par += "--t1: " 
+                par += "--t1: "
                      + "oR:" + outerRadius.ToString() + " "
                      + "iR:" + innerRadius.ToString() + " "
                      + "O:" + opacity.ToString() + " "
@@ -1431,7 +1522,7 @@ namespace ModularVis
             }
 
             private void loadStroke(Brush b) {
-                if (!env){
+                if (!env) {
                     br = b;
                     body.Stroke = br;
                 }
@@ -1587,7 +1678,8 @@ namespace ModularVis
                 Rectangle bg = canv.FindName("bg") as Rectangle;
                 ratioX = src.PixelWidth / bg.Width;
                 ratioY = src.PixelHeight / bg.Height;
-                refreshEnv();
+                if(env)
+                    refreshEnv();
             }
 
             public bool setEnv()
@@ -1621,7 +1713,7 @@ namespace ModularVis
 
             public void setEnv(bool e) {
                 env = e;
-                if (env){
+                if (env) {
                     body.Opacity = 1;
                     src = new BitmapImage();
                     src.BeginInit();
@@ -1729,6 +1821,7 @@ namespace ModularVis
                     lens[i].MouseWheel += lens_scrolled;
                     lens[i].PreviewMouseUp += lens_unclicked;
                     opacity -= opacityInc;
+                    Panel.SetZIndex(lens[i], 6);
                     canv.Children.Add(lens[i]);
                 }
                 cBr = null;
@@ -1905,6 +1998,7 @@ namespace ModularVis
                     lens[i].MouseWheel += lens_scrolled;
                     lens[i].PreviewMouseUp += lens_unclicked;
                     opacity -= opacityInc;
+                    Panel.SetZIndex(lens[i], 6);
                     canv.Children.Add(lens[i]);
                 }
             }
@@ -1948,6 +2042,7 @@ namespace ModularVis
                         lens[i].MouseWheel += lens_scrolled;
                         lens[i].PreviewMouseUp += lens_unclicked;
                         currStep += stretch;
+                        Panel.SetZIndex(lens[i], 6);
                         canv.Children.Add(lens[i]);
                     }
                     setStartOpacity(startOpacity);
@@ -2006,7 +2101,7 @@ namespace ModularVis
             private System.Windows.Threading.DispatcherTimer timer;
             private bool sendDown;
 
-            public TextBar(double ix, double iy, Func<String,String> sv, Action<String> ld, Action<String> dl, Canvas c) {
+            public TextBar(double ix, double iy, Func<String, String> sv, Action<String> ld, Action<String> dl, Canvas c) {
                 canv = c;
                 x = ix;
                 y = iy;
@@ -2046,13 +2141,14 @@ namespace ModularVis
                 go.FontSize = 12;
                 go.BorderThickness = new Thickness(0);
                 go.Background = new SolidColorBrush(Colors.LightGray);
-                RectangleGeometry clip = new RectangleGeometry(new Rect(new Point(0,0),new Point(go.Width,go.Height)));
+                RectangleGeometry clip = new RectangleGeometry(new Rect(new Point(0, 0), new Point(go.Width, go.Height)));
                 clip.RadiusX = go.Height / 8;
                 clip.RadiusY = go.Height / 8;
                 go.Clip = clip;
                 Canvas.SetLeft(go, x + textBox.Width + spacing);
                 Canvas.SetTop(go, y);
                 go.PreviewMouseDown += goClick;
+                go.IsHitTestVisible = false;
                 canv.Children.Add(go);
 
                 delete = new Button();
@@ -2126,20 +2222,32 @@ namespace ModularVis
             }
 
             private void timer_tick(object sender, EventArgs e) {
-                if (sendDown){
-                    if (nextY - next.y > 1){
-                        next.setY(next.y * .7 + nextY * .3);
+                double delta = 0;
+                if (sendDown) {
+                    if (nextY - next.y > 1)
+                    {
+                        delta = next.y - next.setY(next.y * .7 + nextY * .3);
                     }
                     else
+                    {
+                        activate();
+                        next.activate();
                         timer.Stop();
+                    }
                 }
                 else {
-                    if (y - nextY > 1){
-                        setY(y * .7 + nextY * .3);
+                    if (y - nextY > 1)
+                    {
+                        delta = y - setY(y * .7 + nextY * .3);
                     }
                     else
+                    {
+                        activate();
                         timer.Stop();
+                    }
                 }
+                if ((!sendDown && next == null) || (sendDown && next.next == null))
+                    canv.Height -= delta;
             }
 
             private void convertToSaved() {
@@ -2153,7 +2261,7 @@ namespace ModularVis
                 Canvas.SetLeft(go, x + textBox.Width + 10);
                 go.Content = "load";
                 go.Width = (200 - textBox.Width - 15) / 2;
-                
+
                 delete.Height = 20;
                 delete.Width = go.Width;
                 delete.Content = "delete";
@@ -2176,28 +2284,28 @@ namespace ModularVis
                 canv.Children.Remove(textBox);
                 canv.Children.Remove(go);
                 canv.Children.Remove(delete);
+                deactivate();
                 next.moveUp();
             }
 
             public void moveUp() {
+                deactivate();
                 nextY = y - textBox.Height - 10;
                 sendDown = false;
                 timer.Start();
                 if (next != null)
                     next.moveUp();
-                else
-                    canv.Height = canv.Height - textBox.Height - 10;
             }
 
             private void goClick(object sender, MouseButtonEventArgs e) {
-                if (!saved){
+                if (!saved) {
                     visName = save(textBox.Text);
                     saved = true;
                     convertToSaved();
+                    deactivate();
 
-                    next = new TextBar(x,y,save,load,del,canv);
+                    next = new TextBar(x, y, save, load, del, canv);
                     nextY = y + textBox.Height + 10;
-                    canv.Height += textBox.Height + 10;
                     sendDown = true;
                     timer.Start();
                 }
@@ -2214,11 +2322,22 @@ namespace ModularVis
                 }
             }
 
-            public void setY(double iy) {
+            public double setY(double iy) {
                 y = iy;
                 Canvas.SetTop(textBox, y);
                 Canvas.SetTop(go, y);
                 Canvas.SetTop(delete, y);
+                return y;
+            }
+
+            public void deactivate() {
+                go.IsHitTestVisible = false;
+                delete.IsHitTestVisible = false;
+            }
+
+            public void activate() {
+                go.IsHitTestVisible = true;
+                delete.IsHitTestVisible = true;
             }
         }
 
@@ -2232,15 +2351,24 @@ namespace ModularVis
             private Rectangle playSquare;
             private Rectangle dispTrack;
             private Rectangle progress;
+            private Rectangle mediaProgress;
             private String path;
             private System.Windows.Threading.DispatcherTimer timer;
-            private Action recordGaze, stopRecord;
+            private Action<bool> recordGaze;
+            private Action<bool, String> stopRecord;
             private Action startPlay, stopPlay;
             private bool recording, playing;
             private String[] recorded;
             private int currInd;
+            private MediaElement vid;
+            private int vidID;
+            private bool firstFrame;
+            private double startTime;
+            private double totalTime;
+            private double maxBar;
+            private bool recordedFull;
 
-            public RecordInterface(double ix, double iy, String p, Action start, Action stop, Action pstart, Action pstop, Canvas c) {
+            public RecordInterface(double ix, double iy, String p, Action<bool> start, Action<bool, String> stop, Action pstart, Action pstop, Canvas c) {
                 canv = c;
                 recording = false;
                 playing = false;
@@ -2250,6 +2378,13 @@ namespace ModularVis
                 startPlay = pstart;
                 stopPlay = pstop;
                 currInd = 0;
+                vid = null;
+                vidID = -1;
+                firstFrame = true;
+                startTime = 0;
+                totalTime = 0;
+                maxBar = 0;
+                recordedFull = false;
 
                 record = new Button();
                 record.Width = 20;
@@ -2334,18 +2469,31 @@ namespace ModularVis
                 Canvas.SetTop(progress, Canvas.GetTop(dispTrack));
                 canv.Children.Add(progress);
 
+                mediaProgress = new Rectangle();
+                mediaProgress.Width = 0;
+                mediaProgress.Height = dispTrack.Height;
+                mediaProgress.Fill = new SolidColorBrush(Colors.Red);
+                Canvas.SetLeft(mediaProgress, Canvas.GetLeft(dispTrack));
+                Canvas.SetTop(mediaProgress, Canvas.GetTop(dispTrack));
+                canv.Children.Add(mediaProgress);
+
                 timer = new System.Windows.Threading.DispatcherTimer();
                 timer.Interval = new TimeSpan(0, 0, 0, 0, 10);
                 timer.Tick += timer_tick;
             }
 
             private void play_click(object sender, MouseButtonEventArgs e) {
+                progress.Fill = new SolidColorBrush(Colors.Red);
+                mediaProgress.Fill = new SolidColorBrush(Colors.Red);
                 Canvas.SetLeft(progress, Canvas.GetLeft(dispTrack));
                 progress.Width = 0;
                 playing = !playing;
-                if (playing){
-                    if (playing = File.Exists(path)){
+                if (playing) {
+                    if (playing = File.Exists(path)) {
                         recorded = File.ReadAllLines(path);
+                        if (recorded[recorded.Length - 1].Contains("-full") &&
+                           recorded[recorded.Length - 1].Contains("-" + vidID.ToString() + " "))
+                            recordedFull = true;
                         timer.Start();
                         startPlay();
                         currInd = 0;
@@ -2362,30 +2510,81 @@ namespace ModularVis
             }
 
             private void record_click(object sender, MouseButtonEventArgs e) {
+                progress.Fill = new SolidColorBrush(Colors.PaleVioletRed);
+                mediaProgress.Fill = new SolidColorBrush(Colors.PaleVioletRed);
+                recordedFull = false;
                 Canvas.SetLeft(progress, Canvas.GetLeft(dispTrack));
                 progress.Width = 0;
+                mediaProgress.Width = 0;
                 recording = !recording;
-                if (recording){
+                if (recording) {
                     stopSquare.Visibility = Visibility.Visible;
                     timer.Start();
-                    recordGaze();
+                    recordGaze(vid != null);
                     play.IsHitTestVisible = false;
+                    firstFrame = true;
                 }
                 else {
                     stopSquare.Visibility = Visibility.Hidden;
                     timer.Stop();
-                    stopRecord();
+                    String foot = (recordedFull) ? "-full" : "-clip";
+                    foot += "  -" + vidID.ToString() + " ";
+                    stopRecord(vid != null, foot);
+                    play.IsHitTestVisible = true;
+                }
+            }
+
+            private void simulate_record_click(){
+                recordedFull = true;
+                Canvas.SetLeft(progress, Canvas.GetLeft(dispTrack));
+                progress.Width = 0;
+                mediaProgress.Width = 0;
+                recording = !recording;
+                if (recording)
+                {
+                    stopSquare.Visibility = Visibility.Visible;
+                    timer.Start();
+                    recordGaze(vid != null);
+                    play.IsHitTestVisible = false;
+                    firstFrame = true;
+                }
+                else
+                {
+                    stopSquare.Visibility = Visibility.Hidden;
+                    timer.Stop();
+                    String foot = (recordedFull) ? "-full" : "-clip";
+                    foot += "  -" + vidID.ToString() + " ";
+                    stopRecord(vid != null, foot);
                     play.IsHitTestVisible = true;
                 }
             }
 
             private void timer_tick(object sender, EventArgs e) {
-                if (recording) {
+                if (recording && vid == null) {
                     dispRecording();
                 }
-                else if(playing){
+                else if (recording && vid != null) {
+                    dispMediaRecording();
+                }
+                else if (playing) {
                     dispPlaying();
                 }
+            }
+
+            private void dispMediaRecording() {
+                if (firstFrame) { 
+                    startTime = vid.Position.TotalSeconds;
+                    totalTime = vid.NaturalDuration.TimeSpan.TotalSeconds;
+                    double rat = startTime / totalTime;
+                    Canvas.SetLeft(progress, Canvas.GetLeft(dispTrack) + dispTrack.Width * rat);
+                    maxBar = Canvas.GetLeft(dispTrack) + dispTrack.Width - Canvas.GetLeft(progress);
+                    firstFrame = false;
+                }
+                double st2end = ((vid.Position.TotalSeconds - startTime) / totalTime) * dispTrack.Width;
+                progress.Width = (st2end >= 0) ? st2end : maxBar;
+                mediaProgress.Width = (st2end >= 0) ? 0 : Math.Abs(dispTrack.Width - maxBar + st2end);
+                if (Math.Ceiling(st2end) == 0)
+                    simulate_record_click();
             }
 
             private void dispRecording() {
@@ -2394,29 +2593,45 @@ namespace ModularVis
                 double pL = Canvas.GetLeft(progress);
                 double tL = Canvas.GetLeft(dispTrack);
                 double tR = tL + dispTrack.Width;
-                if (pL == tL && progress.Width < 40){
+                if (pL == tL && progress.Width < 40) {
                     progress.Width = min(maxWidth, progress.Width + speed);
                 }
-                else if (pL >= tL && pL + speed < tR){
+                else if (pL >= tL && pL + speed < tR) {
                     Canvas.SetLeft(progress, pL = pL + speed);
                     progress.Width = min(maxWidth, tR - pL);
                 }
-                else{
+                else {
                     progress.Width = 0;
                     Canvas.SetLeft(progress, tL);
                 }
             }
 
             private void dispPlaying() {
-                if(recorded.Length > 0)
+                if (recorded.Length > 0)
                     progress.Width = dispTrack.Width * (currInd + 1) / recorded.Length;
             }
 
             public Point next() {
-                currInd = (currInd + 1) % recorded.Length;
+                if (vid != null && recordedFull)
+                    currInd = (int)((vid.Position.TotalSeconds / vid.NaturalDuration.TimeSpan.TotalSeconds) * (recorded.Length - 2));
+                else
+                    currInd = (currInd + 1) % (recorded.Length - 1);
+                currInd = min(currInd, recorded.Length - 2);
                 String curr = recorded[currInd];
                 return new Point(Convert.ToDouble(curr.Substring(0, curr.IndexOf(":"))),
-                                 Convert.ToDouble(curr.Substring(curr.IndexOf(":") + 1,curr.IndexOf(" ") - curr.IndexOf(":"))));
+                                 Convert.ToDouble(curr.Substring(curr.IndexOf(":") + 1, curr.IndexOf(" ") - curr.IndexOf(":"))));
+            }
+
+            public void attachMedia(MediaElement me, int id) {
+                recordedFull = false;
+                vid = me;
+                vidID = id;
+            }
+
+            public void detatchMedia() {
+                recordedFull = false;
+                vid = null;
+                vidID = -1;
             }
 
             private double max(double a, double b) {
@@ -2426,16 +2641,47 @@ namespace ModularVis
             private double min(double a, double b) {
                 return (a < b) ? a : b;
             }
+
+            private int min(int a, int b)
+            {
+                return (a < b) ? a : b;
+            }
         }
 
-        public void recordGaze() {
+        public void recordGaze(bool media) {
             recording = true;
-            rw = new StreamWriter(recordPath);
+            if (media) {
+                rw = new StreamWriter(tempRecordPath1);
+            }
+            else {
+                rw = new StreamWriter(recordPath);
+            }
         }
 
-        public void stopRecord() {
+        public void stopRecord(bool media, String footer) {
             recording = false;
-            rw.Close();
+            if (media) {
+                rw.Close();
+                rw = new StreamWriter(recordPath);
+                String[] tFile = File.ReadAllLines(tempRecordPath1);
+                for (int i = 0; i < tFile.Length; i++) {
+                    rw.WriteLine(tFile[i]);
+                }
+                if (File.Exists(tempRecordPath2)) {
+                    tFile = File.ReadAllLines(tempRecordPath2);
+                    for (int i = 0; i < tFile.Length; i++){
+                        rw.WriteLine(tFile[i]);
+                    }
+                }
+                rw.WriteLine(footer);
+                File.Delete(tempRecordPath1);
+                File.Delete(tempRecordPath2);
+                rw.Close();
+            }
+            else {
+                rw.WriteLine(footer);
+                rw.Close();
+            }
         }
 
         public void startPlayback() {
@@ -2444,6 +2690,28 @@ namespace ModularVis
 
         public void stopPlayback() {
             playing = false;
+        }
+
+        private void picFreezeSync(bool frz) {
+            bg.Opacity = (frz) ? .5 : 1;
+        }
+
+        private void vidFreezeSync(bool frz) {
+            if (frz) {
+                vid.Opacity = .5;
+                vid.Pause();
+            }
+            else {
+                vid.Opacity = 1;
+                vid.Play();
+            }
+            bg.Opacity = 1;
+        }
+
+        private void vid_ended(object sender, EventArgs e) {
+            looped = true;
+            vid.Position = TimeSpan.Zero;
+            vid.Play();
         }
 
         public void loadOddParams(String par) {
@@ -2481,7 +2749,12 @@ namespace ModularVis
 
         private void update(object sender, EventArgs e)
         {
-            if (recording) {
+            if (recording && !freeze) {
+                if (looped) {
+                    rw.Close();
+                    rw = new StreamWriter(tempRecordPath2);
+                    looped = false;
+                }
                 rw.WriteLine(curr.X.ToString() + ":" + curr.Y.ToString() + " ");
             }
 
@@ -2491,15 +2764,11 @@ namespace ModularVis
                 fromScreen = PointFromScreen(ri.next());
             }
 
-            if (!freeze){
+            if (!freeze) {
                 t1.next(fromScreen);
                 t2.next(fromScreen);
                 t3.next(fromScreen);
             }
-        }
-
-        public int max(int a, int b) {
-            return (a > b) ? a : b;
         }
 
         public class SwatchControl {
@@ -2549,12 +2818,12 @@ namespace ModularVis
             }
 
             public void clearColor() {
-                for (int i = 0; i < elementFunc.Length; i++){
+                for (int i = 0; i < elementFunc.Length; i++) {
                     elementFunc[i](null);
                 }
             }
 
-            private void hover(object sender, MouseEventArgs e){
+            private void hover(object sender, MouseEventArgs e) {
                 Canvas.SetLeft(cursor, e.GetPosition(canv).X - cursor.Width / 2);
                 Canvas.SetTop(cursor, e.GetPosition(canv).Y - cursor.Height / 2);
             }
@@ -2652,10 +2921,10 @@ namespace ModularVis
                     src.EndInit();
                     double ratioX = src.PixelWidth / bg.Width;
                     double ratioY = src.PixelHeight / bg.Height;
-                    ImageBrush temp = new ImageBrush(new CroppedBitmap(src, new Int32Rect((int)((prev.X - radius*zoom)*ratioX),
-                                                                                          (int)((prev.Y - radius*zoom)*ratioY),
-                                                                                          (int)((2*radius*zoom)*ratioX), 
-                                                                                          (int)((2*radius*zoom)*ratioY))));
+                    ImageBrush temp = new ImageBrush(new CroppedBitmap(src, new Int32Rect((int)((prev.X - radius * zoom) * ratioX),
+                                                                                          (int)((prev.Y - radius * zoom) * ratioY),
+                                                                                          (int)((2 * radius * zoom) * ratioX),
+                                                                                          (int)((2 * radius * zoom) * ratioY))));
                     temp.Stretch = Stretch.Fill;
                     lens.Fill = temp;
                 }
@@ -2684,11 +2953,11 @@ namespace ModularVis
                 dheight = (int)(height * (dwidth / width));
                 stepX = width / (dwidth - 1);
                 stepY = height / (dheight - 1);
-                frame = new Polygon[dheight-1, dwidth-1];
+                frame = new Polygon[dheight - 1, dwidth - 1];
                 points = new Point[dheight, dwidth];
                 for (int y = 0; y < dheight; y++) {
                     for (int x = 0; x < dwidth; x++) {
-                        points[y, x] = new Point(x*stepX, y*stepY);
+                        points[y, x] = new Point(x * stepX, y * stepY);
                     }
                 }
                 BitmapImage src = new BitmapImage();
@@ -2715,11 +2984,11 @@ namespace ModularVis
             public void next(Point p) {
                 prev.X = prev.X * smooth + p.X * (1 - smooth);
                 prev.Y = prev.Y * smooth + p.Y * (1 - smooth);
-                
+
                 double thisPull;
                 Point thisStart = new Point();
-                for (int y = 0; y < dheight; y++){
-                    for (int x = 0; x < dwidth; x++){
+                for (int y = 0; y < dheight; y++) {
+                    for (int x = 0; x < dwidth; x++) {
                         thisStart.X = x * stepX;
                         thisStart.Y = y * stepY;
                         thisPull = pull / distance(prev, thisStart);
@@ -2728,8 +2997,8 @@ namespace ModularVis
                         points[y, x].Y = thisStart.Y * (1 - thisPull) + prev.Y * thisPull;
                     }
                 }
-                for (int y = 0; y < dheight - 1; y++){
-                    for (int x = 0; x < dwidth - 1; x++){
+                for (int y = 0; y < dheight - 1; y++) {
+                    for (int x = 0; x < dwidth - 1; x++) {
                         frame[y, x].Points[0] = points[y, x];
                         frame[y, x].Points[1] = points[y, x + 1];
                         frame[y, x].Points[2] = points[y + 1, x + 1];
@@ -2761,7 +3030,7 @@ namespace ModularVis
             private double smooth;
             private int dwidth, dheight;
             private double stepX, stepY;
-            
+
             public EnvGaze(Canvas c) {
                 canv = c;
                 br = new SolidColorBrush(Colors.Black);
@@ -2798,8 +3067,8 @@ namespace ModularVis
 
                 double thisPull;
                 Point thisStart = new Point();
-                for (int y = 0; y < dheight; y++){
-                    for (int x = 0; x < dwidth; x++){
+                for (int y = 0; y < dheight; y++) {
+                    for (int x = 0; x < dwidth; x++) {
                         thisStart.X = x * stepX;
                         thisStart.Y = y * stepY;
                         thisPull = pull / distance(prev, thisStart);
@@ -2821,8 +3090,8 @@ namespace ModularVis
                 stepX = width / (dwidth - 1);
                 stepY = height / (dheight - 1);
                 dots = new Ellipse[dheight, dwidth];
-                for (int y = 0; y < dheight; y++){
-                    for (int x = 0; x < dwidth; x++){
+                for (int y = 0; y < dheight; y++) {
+                    for (int x = 0; x < dwidth; x++) {
                         dots[y, x] = new Ellipse();
                         dots[y, x].Width = radius * 2;
                         dots[y, x].Height = radius * 2;
@@ -2843,7 +3112,7 @@ namespace ModularVis
                 return (a < b) ? a : b;
             }
 
-            private double distance(Point a, Point b){
+            private double distance(Point a, Point b) {
                 return Math.Sqrt(Math.Pow(a.X - b.X, 2) + Math.Pow(a.Y - b.Y, 2));
             }
         }
@@ -2881,8 +3150,8 @@ namespace ModularVis
                 inner.Fill = new SolidColorBrush(Colors.Black);
                 inner.RadiusX = inner.Width / 4;
                 inner.RadiusY = inner.Height / 4;
-                Canvas.SetLeft(inner, x + (outer.Width-inner.Width)/2);
-                Canvas.SetTop(inner, y + (outer.Height - inner.Height)/2);
+                Canvas.SetLeft(inner, x + (outer.Width - inner.Width) / 2);
+                Canvas.SetTop(inner, y + (outer.Height - inner.Height) / 2);
                 inner.PreviewMouseDown += clicked;
                 inner.Visibility = Visibility.Hidden;
                 canv.Children.Add(inner);
@@ -2892,7 +3161,7 @@ namespace ModularVis
                 label.FontSize = 12;
                 label.FontFamily = new FontFamily("Arial");
                 Canvas.SetLeft(label, x + outer.Width + 5);
-                Canvas.SetTop(label, y + (outer.Height - label.FontSize)/2);
+                Canvas.SetTop(label, y + (outer.Height - label.FontSize) / 2);
                 canv.Children.Add(label);
             }
 
@@ -2912,7 +3181,7 @@ namespace ModularVis
             private void clicked(object sender, MouseButtonEventArgs e) {
                 on = send();
 
-                if (on){
+                if (on) {
                     inner.Visibility = Visibility.Visible;
                 }
                 else {
@@ -2950,7 +3219,7 @@ namespace ModularVis
                 handle.Height = 12;
                 Canvas.SetTop(track, y);
                 Canvas.SetLeft(track, x);
-                Canvas.SetTop(handle, y + (track.Height - handle.Height)/2);
+                Canvas.SetTop(handle, y + (track.Height - handle.Height) / 2);
                 Canvas.SetLeft(handle, x + (track.Width - handle.Width) / 2);
                 track.RadiusX = handle.Width / 4;
                 track.RadiusY = handle.Width / 4;
@@ -2959,7 +3228,7 @@ namespace ModularVis
                 track.PreviewMouseDown += trackMouseDown;
                 handle.PreviewMouseDown += handleMouseDown;
                 Panel.SetZIndex(track, 900);
-                Panel.SetZIndex(handle, 900);
+                Panel.SetZIndex(handle, 901);
                 canv.Children.Add(track);
                 canv.Children.Add(handle);
 
@@ -2968,9 +3237,11 @@ namespace ModularVis
                 labelBlock.FontSize = 12;
                 labelBlock.FontFamily = new FontFamily("Arial");
                 labelBlock.Width = track.Width;
-                labelBlock.TextAlignment = TextAlignment.Center;
-                Canvas.SetLeft(labelBlock, x);
-                Canvas.SetTop(labelBlock, y + track.Height + 5);
+                labelBlock.TextAlignment = TextAlignment.Left;
+                Canvas.SetLeft(labelBlock, x + 5);
+                Canvas.SetTop(labelBlock, y + track.Height);
+                Panel.SetZIndex(labelBlock, 900);
+                labelBlock.IsHitTestVisible = false;
                 canv.Children.Add(labelBlock);
             }
 
@@ -3141,6 +3412,24 @@ namespace ModularVis
                 (sender as Rectangle).StrokeThickness = 2;
                 Panel.SetZIndex((sender as Rectangle), 800);
             }
+        }
+
+        private int min(int a, int b) {
+            return (a < b) ? a : b;
+        }
+
+        private int max(int a, int b){
+            return (a > b) ? a : b;
+        }
+
+        private double min(double a, double b)
+        {
+            return (a < b) ? a : b;
+        }
+
+        private double max(double a, double b)
+        {
+            return (a > b) ? a : b;
         }
     }
 }

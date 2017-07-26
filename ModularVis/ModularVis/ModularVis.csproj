@@ -125,7 +125,22 @@
     <Resource Include="utilIcon.jpg" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="bg.jpg" />
+    <Resource Include="blankBg.jpg" />
+    <Resource Include="codeBg.jpg" />
+    <Resource Include="graphBg.jpg" />
+    <Resource Include="mapBg.jpg" />
+    <Resource Include="xrayBg.JPG" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="blackBg.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="bears.mp4" />
+    <Content Include="dashCam.mp4">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

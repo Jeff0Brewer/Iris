@@ -67,3 +67,5 @@ C:\Users\Jeff\Documents\GitHub\ModularVis\ModularVis\ModularVis\obj\Debug\MainWi
 C:\Users\Jeff\Documents\GitHub\ModularVis\ModularVis\ModularVis\obj\Debug\ModularVis.g.resources
 C:\Users\Jeff\Documents\GitHub\ModularVis\ModularVis\ModularVis\obj\Debug\ModularVis.Properties.Resources.resources
 C:\Users\Jeff\Documents\GitHub\ModularVis\ModularVis\ModularVis\obj\Debug\ModularVis.csproj.GenerateResource.Cache
+C:\Users\ResearchSquad\Documents\GitHub\ModularVis\ModularVis\ModularVis\obj\Debug\ModularVis_Content.g.cs
+C:\Users\ResearchSquad\Documents\GitHub\ModularVis\ModularVis\ModularVis\bin\Debug\dashCam.mp4
