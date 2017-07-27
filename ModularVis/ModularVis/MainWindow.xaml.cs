@@ -1340,6 +1340,7 @@ namespace ModularVis
             private double zoom;
             private BitmapImage src;
             private double ratioX, ratioY;
+            private double offsetX, offsetY;
             //UI
             private Rectangle overlay;
             private bool setInner;
@@ -1395,8 +1396,9 @@ namespace ModularVis
                 //EnvColoring
                 env = false;
                 img = imgpath;
-                zoom = .90;
+                zoom = .95;
                 src = new BitmapImage();
+                setEnvImg(img);
             }
 
             public String getParams()
@@ -1600,11 +1602,11 @@ namespace ModularVis
             {
                 try
                 {
-                    ImageBrush temp = new ImageBrush(new CroppedBitmap(src, new Int32Rect((int)((prev.X - outerRadius * zoom) * ratioX),
-                                                                                          (int)((prev.Y - outerRadius * zoom) * ratioY),
+                    ImageBrush temp = new ImageBrush(new CroppedBitmap(src, new Int32Rect((int)((prev.X - outerRadius * zoom) * ratioX + offsetX),
+                                                                                          (int)((prev.Y - outerRadius * zoom) * ratioY + offsetY),
                                                                                           (int)((2 * outerRadius * zoom) * ratioX),
                                                                                           (int)((2 * outerRadius * zoom) * ratioY))));
-                    temp.Stretch = Stretch.Fill;
+                    temp.Stretch = Stretch.UniformToFill;
                     body.Stroke = temp;
                 }
                 catch { }
@@ -1635,29 +1637,30 @@ namespace ModularVis
                 Rectangle bg = canv.FindName("bg") as Rectangle;
                 ratioX = src.PixelWidth / bg.Width;
                 ratioY = src.PixelHeight / bg.Height;
+                if (ratioX < ratioY) {
+                    ratioY = ratioX;
+                    offsetX = 0;
+                    offsetY = src.PixelWidth * ((src.PixelHeight / (double)src.PixelWidth) - (bg.Height / bg.Width)) / 2;
+                }
+                else {
+                    ratioX = ratioY;
+                    offsetY = 0;
+                    offsetX = src.PixelHeight * ((src.PixelWidth / (double)src.PixelHeight) - (bg.Width / bg.Height)) / 2;
+                }
                 if(env)
                     refreshEnv();
             }
 
             public bool setEnv()
             {
-                if (!env)
+                env = !env;
+                if (env)
                 {
                     body.Opacity = 1;
-                    env = true;
-                    src = new BitmapImage();
-                    src.BeginInit();
-                    src.UriSource = new Uri(img, UriKind.Relative);
-                    src.CacheOption = BitmapCacheOption.OnLoad;
-                    src.EndInit();
-                    Rectangle bg = canv.FindName("bg") as Rectangle;
-                    ratioX = src.PixelWidth / bg.Width;
-                    ratioY = src.PixelHeight / bg.Height;
                     refreshEnv();
                 }
                 else
                 {
-                    env = false;
                     body.Opacity = opacity;
                     body.Stroke = br;
                 }
@@ -1672,14 +1675,6 @@ namespace ModularVis
                 env = e;
                 if (env) {
                     body.Opacity = 1;
-                    src = new BitmapImage();
-                    src.BeginInit();
-                    src.UriSource = new Uri(img, UriKind.Relative);
-                    src.CacheOption = BitmapCacheOption.OnLoad;
-                    src.EndInit();
-                    Rectangle bg = canv.FindName("bg") as Rectangle;
-                    ratioX = src.PixelWidth / bg.Width;
-                    ratioY = src.PixelHeight / bg.Height;
                     refreshEnv();
                 }
                 else {
