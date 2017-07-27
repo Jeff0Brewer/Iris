@@ -25,25 +25,22 @@ namespace ModularVis
 {
     public partial class MainWindow : Window
     {
-
-#region global variables
+        #region global variables
         //UI
-        Canvas trackUI;
-        Canvas lineUI;
-        Canvas fixUI;
-        Canvas utilUI;
         bool freeze = false;
         SwatchControl swc;
+        double UIstroke = 1;
+        Brush UIfrontBr = new SolidColorBrush(Colors.Black);
+        Brush UIbackBr = new SolidColorBrush(Colors.Gray);
+        Rectangle[] menuTabs;
+        Canvas[] menus;
+        Rectangle menuFade;
 
         //Vis
         GazeTrack t1;
         GazeLine t2;
         FixPoints t3;
-
-        //Coloring
-        CanColor toColor;
-        int id;
-
+        
         //Saving
         String savPath = "C:/Users/ResearchSquad/Documents/VisSaves/Visualizations/";
         double smoothness = .7;
@@ -73,9 +70,10 @@ namespace ModularVis
         //EyeX
         EyeXHost eyeHost;
         Point curr = new Point(0, 0);
-#endregion
+        #endregion
 
-#region init
+        #region init
+
         public MainWindow()
         {
             InitializeComponent();
@@ -93,224 +91,189 @@ namespace ModularVis
             bg.Width = canv.ActualWidth;
             bg.Height = canv.ActualHeight;
 
-            t1 = new GazeTrack(canv, "blankBg.jpg");
+            t1 = new GazeTrack(canv, backgrounds[0]);
             t2 = new GazeLine(canv);
             t3 = new FixPoints(canv);
 
+            menuFade = new Rectangle();
+            menuFade.Width = Canvas.GetLeft(util) + util.Width;
+            menuFade.Height = util.Height;
+            menuFade.Fill = new LinearGradientBrush(Colors.Transparent, Colors.Black, 90);
+            menuFade.Opacity = .1;
+            menuFade.Visibility = Visibility.Hidden;
+            menuFade.IsHitTestVisible = false;
+            Panel.SetZIndex(menuFade, 801);
+            canv.Children.Add(menuFade);
+
+            menuTabs = new Rectangle[4];
+            menuTabs[0] = trDot;
+            menuTabs[1] = trLine;
+            menuTabs[2] = trFix;
+            menuTabs[3] = util;
+
+            menus = new Canvas[4];
+
+            double menuWidth = 220;
+            int menuZindex = 800;
+            double menuTop = 30;
+            Brush menuBg = new SolidColorBrush(Colors.White);
+
+            double last = 0;
+            double bottomSpacing = 12.5;
+            double toggleSpacing = 7;
+            double sliderSpacing = 8;
+            double swatchSpacing = 5;
+            double recordSpacing = 12;
+
             #region trackdot UI panel
 
-            trackUI = new Canvas();
-            trackUI.Width = 220;
-            trackUI.Height = 70;
-            trackUI.Background = new SolidColorBrush(Colors.White);
-            Panel.SetZIndex(trackUI, 800);
-            Canvas.SetLeft(trackUI, 0);
-            Canvas.SetTop(trackUI, 30);
-            trackUI.Visibility = Visibility.Hidden;
-            canv.Children.Add(trackUI);
+            menus[0] = new Canvas();
+            menus[0].Width = menuWidth;
+            menus[0].Height = 70;
+            menus[0].Background = menuBg;
+            Panel.SetZIndex(menus[0], menuZindex);
+            Canvas.SetLeft(menus[0], 0);
+            Canvas.SetTop(menus[0], menuTop);
+            menus[0].Visibility = Visibility.Hidden;
+            canv.Children.Add(menus[0]);
 
-            Toggle tt1 = new Toggle("visible", 10, 10, t1.togVis, t1.getVis, trackUI);
-            Toggle tt2 = new Toggle("env", 10, 35, t1.setEnv, t1.getEnv, trackUI);
+            last = 10;
+            Toggle tt1 = new Toggle("visible", 10, last, t1.togVis, t1.getVis, menus[0]);
+            Toggle tt2 = new Toggle("env", 10, last += Toggle.Height + toggleSpacing, t1.setEnv, t1.getEnv, menus[0]);
+            last += Toggle.Height;
+
+            menus[0].Height = last + bottomSpacing;
 
             #endregion
 
             #region trackline UI panel
 
-            lineUI = new Canvas();
-            lineUI.Width = 220;
-            lineUI.Height = 40;
-            lineUI.Background = new SolidColorBrush(Colors.White);
-            Panel.SetZIndex(lineUI, 800);
-            Canvas.SetLeft(lineUI, 0);
-            Canvas.SetTop(lineUI, 30);
-            lineUI.Visibility = Visibility.Hidden;
-            canv.Children.Add(lineUI);
+            menus[1] = new Canvas();
+            menus[1].Width = menuWidth;
+            menus[1].Height = 40;
+            menus[1].Background = menuBg;
+            Panel.SetZIndex(menus[1], menuZindex);
+            Canvas.SetLeft(menus[1], 0);
+            Canvas.SetTop(menus[1], menuTop);
+            menus[1].Visibility = Visibility.Hidden;
+            canv.Children.Add(menus[1]);
 
-            Toggle tl1 = new Toggle("visible", 10, 10, t2.togVis, t2.getVis, lineUI);
+            last = 10;
+            Toggle tl1 = new Toggle("visible", 10, last, t2.togVis, t2.getVis, menus[1]);
+            last += Toggle.Height;
+
+            menus[1].Height = last + bottomSpacing;
 
             #endregion
 
             #region fix UI panel
 
-            fixUI = new Canvas();
-            fixUI.Width = 220;
-            fixUI.Height = 115;
-            fixUI.Background = new SolidColorBrush(Colors.White);
-            Panel.SetZIndex(fixUI, 800);
-            Canvas.SetLeft(fixUI, 0);
-            Canvas.SetTop(fixUI, 30);
-            fixUI.Visibility = Visibility.Hidden;
-            canv.Children.Add(fixUI);
+            menus[2] = new Canvas();
+            menus[2].Width = menuWidth;
+            menus[2].Height = 115;
+            menus[2].Background = menuBg;
+            Panel.SetZIndex(menus[2], menuZindex);
+            Canvas.SetLeft(menus[2], 0);
+            Canvas.SetTop(menus[2], menuTop);
+            menus[2].Visibility = Visibility.Hidden;
+            canv.Children.Add(menus[2]);
 
-            Toggle tf1 = new Toggle("visible", 10, 10, t3.togVis, t3.getVis, fixUI);
-            Toggle tf2 = new Toggle("active line", 10, 35, t3.togActiveLine, t3.getActiveLine, fixUI);
-            SliderControl sc1 = new SliderControl(fixUI);
-            Slider sf1 = new Slider("fixation time", 10, 60, 1, 100, t3.setFixTime, sc1, fixUI);
+            last = 10;
+            Toggle tf1 = new Toggle("visible", 10, last, t3.togVis, t3.getVis, menus[2]);
+            Toggle tf2 = new Toggle("active line", 10, last += Toggle.Height + toggleSpacing, t3.togActiveLine, t3.getActiveLine, menus[2]);
+            SliderControl sc1 = new SliderControl(menus[2]);
+            Slider sf1 = new Slider("fixation time", 10, last += Toggle.Height + sliderSpacing, 1, 100, t3.setFixTime, sc1, menus[2]);
+            last += Slider.Height;
+
+            menus[2].Height = last + bottomSpacing;
 
             #endregion
 
             #region utility UI panel
 
-            utilUI = new Canvas();
-            utilUI.Width = 220;
-            utilUI.Height = 230;
-            utilUI.Background = new SolidColorBrush(Colors.White);
-            Panel.SetZIndex(utilUI, 800);
-            Canvas.SetLeft(utilUI, 0);
-            Canvas.SetTop(utilUI, 30);
-            utilUI.Visibility = Visibility.Hidden;
-            canv.Children.Add(utilUI);
+            menus[3] = new Canvas();
+            menus[3].Width = menuWidth;
+            menus[3].Height = 230;
+            menus[3].Background = menuBg;
+            Panel.SetZIndex(menus[3], menuZindex);
+            Canvas.SetLeft(menus[3], 0);
+            Canvas.SetTop(menus[3], menuTop);
+            menus[3].Visibility = Visibility.Hidden;
+            canv.Children.Add(menus[3]);
 
-            double swatchTop = 12.5;
-            double slideTop = swatchTop + 60;
-            double recordTop = slideTop + 90;
-            double loadTop = recordTop + 30;
-
-            SliderControl sc2 = new SliderControl(utilUI);
-            Slider su1 = new Slider("smoothness", 10, slideTop, 0, .99, setSmoothness, sc2, utilUI);
-            Slider su2 = new Slider("background blur", 10, slideTop + 40, 0, 10, setBgBlur, sc2, utilUI);
+            last = 12.5;
             swc = new SwatchControl(new Action<Brush>[4] { t1.setFillColor, t1.blur.setFillColor, t2.setFillColor, t3.setFillColor }, canv);
-            Swatch s1 = new Swatch(Colors.Black, 12.5, swatchTop, 20, swc, utilUI);
-            Swatch s2 = new Swatch(Colors.LightGray, 37.5, swatchTop, 20, swc, utilUI);
-            Swatch s3 = new Swatch(Colors.Red, 62.5, swatchTop, 20, swc, utilUI);
-            Swatch s4 = new Swatch(Colors.Green, 87.5, swatchTop, 20, swc, utilUI);
-            Swatch s5 = new Swatch(Colors.Blue, 112.5, swatchTop, 20, swc, utilUI);
-            Swatch s6 = new Swatch(Colors.Yellow, 137.5, swatchTop, 20, swc, utilUI);
-            Swatch s7 = new Swatch(Colors.Orange, 162.5, swatchTop, 20, swc, utilUI);
-            Swatch s8 = new Swatch(Colors.Purple, 187.5, swatchTop, 20, swc, utilUI);
-            Swatch s9 = new Swatch(Colors.Gray, 12.5, swatchTop + 25, 20, swc, utilUI);
-            Swatch s10 = new Swatch(Colors.White, 37.5, swatchTop + 25, 20, swc, utilUI);
-            Swatch s11 = new Swatch(Colors.DarkRed, 62.5, swatchTop + 25, 20, swc, utilUI);
-            Swatch s12 = new Swatch(Colors.LightGreen, 87.5, swatchTop + 25, 20, swc, utilUI);
-            Swatch s13 = new Swatch(Colors.DarkBlue, 112.5, swatchTop + 25, 20, swc, utilUI);
-            Swatch s14 = new Swatch(Colors.LightGoldenrodYellow, 137.5, swatchTop + 25, 20, swc, utilUI);
-            Swatch s15 = new Swatch(Colors.DarkOrange, 162.5, swatchTop + 25, 20, swc, utilUI);
-            Swatch s16 = new Swatch(Colors.HotPink, 187.5, swatchTop + 25, 20, swc, utilUI);
+            Swatch s1 = new Swatch(Colors.Black, 12.5, last, swc, menus[3]);
+            Swatch s2 = new Swatch(Colors.LightGray, 37.5, last, swc, menus[3]);
+            Swatch s3 = new Swatch(Colors.Red, 62.5, last, swc, menus[3]);
+            Swatch s4 = new Swatch(Colors.Green, 87.5, last, swc, menus[3]);
+            Swatch s5 = new Swatch(Colors.Blue, 112.5, last, swc, menus[3]);
+            Swatch s6 = new Swatch(Colors.Yellow, 137.5, last, swc, menus[3]);
+            Swatch s7 = new Swatch(Colors.Orange, 162.5, last, swc, menus[3]);
+            Swatch s8 = new Swatch(Colors.Purple, 187.5, last, swc, menus[3]);
+            last += Swatch.Height + swatchSpacing;
+            Swatch s9 = new Swatch(Colors.Gray, 12.5, last, swc, menus[3]);
+            Swatch s10 = new Swatch(Colors.White, 37.5, last, swc, menus[3]);
+            Swatch s11 = new Swatch(Colors.DarkRed, 62.5, last, swc, menus[3]);
+            Swatch s12 = new Swatch(Colors.LightGreen, 87.5, last, swc, menus[3]);
+            Swatch s13 = new Swatch(Colors.DarkBlue, 112.5, last, swc, menus[3]);
+            Swatch s14 = new Swatch(Colors.LightGoldenrodYellow, 137.5, last, swc, menus[3]);
+            Swatch s15 = new Swatch(Colors.DarkOrange, 162.5, last, swc, menus[3]);
+            Swatch s16 = new Swatch(Colors.HotPink, 187.5, last, swc, menus[3]);
+            last += Swatch.Height + 15;
+            SliderControl sc2 = new SliderControl(menus[3]);
+            Slider su1 = new Slider("smoothness", 10, last, 0, .99, setSmoothness, sc2, menus[3]);
+            Slider su2 = new Slider("background blur", 10, last += Slider.Height + sliderSpacing, 0, 10, setBgBlur, sc2, menus[3]);
 
-            ri = new RecordInterface(10, recordTop, recordPath, recordGaze, stopRecord, startPlayback, stopPlayback, utilUI);
+            ri = new RecordInterface(10, last += Slider.Height + recordSpacing, recordPath, recordGaze, stopRecord, startPlayback, stopPlayback, menus[3]);
 
-            loadVisFiles(10, loadTop, utilUI);
+            double loadHeight = loadVisFiles(10, last += RecordInterface.Height + recordSpacing, menus[3]);
+            last += loadHeight;
 
+            menus[3].Height = last + bottomSpacing;
             #endregion
-
-            toColor = t1;
-            id = 0;
-
+            
             System.Windows.Threading.DispatcherTimer dispatcherTimer = new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.Render);
             dispatcherTimer.Interval = new TimeSpan(0, 0, 0, 0, 10);
             dispatcherTimer.Tick += new EventHandler(update);
             dispatcherTimer.Start();
         }
 
-#endregion
-
-        private void onKeyDown(object sender, KeyEventArgs e) {
-            if (e.Key.Equals(Key.Space)){
-                freeze = !freeze;
-                picFreezeSync(freeze);
-                if (vid != null && vid.IsLoaded) {
-                    vidFreezeSync(freeze);
-                }
-            }
-            else if (e.Key.Equals(Key.Left) || e.Key.Equals(Key.Right)){
-                currBgInd = (e.Key.Equals(Key.Left)) ? max(currBgInd - 1, 0) : min(currBgInd + 1, backgrounds.Length - 1);
-                String file = backgrounds[currBgInd];
-                picFreezeSync(freeze);
-                canv.Children.Remove(vid);
-                vid = null;
-                ri.detatchMedia();
-                if (file.Substring(0, 1).Equals("v")) {
-                    vid = new MediaElement();
-                    vid.LoadedBehavior = System.Windows.Controls.MediaState.Manual;
-                    vid.UnloadedBehavior = System.Windows.Controls.MediaState.Manual;
-                    vid.Source = new Uri(file.Substring(1), UriKind.Relative);
-                    vid.Width = canv.ActualWidth;
-                    Canvas.SetTop(vid, 100);
-                    Panel.SetZIndex(vid, 0);
-                    canv.Children.Add(vid);
-                    vid.Play();
-                    Thread.Sleep(50);
-                    vidFreezeSync(freeze);
-                    vid.MediaEnded += vid_ended;
-                    ri.attachMedia(vid, currBgInd);
-                    file = "blackBg.jpg";
-                }
-                BitmapImage src = new BitmapImage();
-                src.BeginInit();
-                src.UriSource = new Uri(file, UriKind.Relative);
-                src.CacheOption = BitmapCacheOption.OnLoad;
-                src.EndInit();
-                ImageBrush imBr = new ImageBrush(src);
-                imBr.Stretch = Stretch.UniformToFill;
-                bg.Fill = imBr;
-
-                t1.setEnvImg(file);
-            }
-            else if (e.Key.Equals(Key.Escape)) {
-                this.Close();
-            }
-        }
+        #endregion
         
-        public String saveCurr(String name) {
-            int savNum = 0;
-            String currPath = savPath + name + ".txt";
-            while (File.Exists(currPath)) {
-                savNum++;
-                currPath = savPath + name + savNum.ToString() + ".txt";
-            }
-            name = (savNum != 0) ? name + savNum.ToString() : name;
+        #region polished vis elements
 
-            TextWriter tw = new StreamWriter(currPath);
-            tw.WriteLine("s:" + smoothness.ToString() + " " + "b:" + blur.ToString() + " ");
-            tw.WriteLine(t1.getParams());
-            tw.WriteLine(t2.getParams());
-            tw.WriteLine(t3.getParams());
-            tw.Close();
+        public abstract class VisElement
+        {
+            public abstract void setColor(int id, Brush b);
 
-            return name;
-        }
-
-        public void loadVis(String name) {
-            String path = savPath + name + ".txt";
-            if (File.Exists(path)) {
-                String[] loaded = File.ReadAllLines(path);
-                loadOddParams(loaded[0]);
-                t1.loadFromParams(loaded[1]);
-                t2.loadFromParams(loaded[2]);
-                t3.loadFromParams(loaded[3]);
-            }
-        }
-
-        public void deleteSave(String name) {
-            String p;
-            if (File.Exists(p = savPath + name + ".txt"))
-                File.Delete(p);
-        }
-
-        public void loadVisFiles(double ix, double iy, Canvas c) {
-            String[] files = Directory.GetFiles(savPath.Substring(0, savPath.Length - 1));
-            TextBar prev = null;
-            foreach (String file in files) {
-                TextBar tb = new TextBar(ix, iy, saveCurr, loadVis, deleteSave, c, file.Substring(savPath.Length, file.Length - savPath.Length - 4));
-                if (prev != null)
-                    prev.next = tb;
-                prev = tb;
-                iy += 30;
-            }
-            if (prev != null)
+            protected Brush brushFromHex(String hex)
             {
-                prev.next = new TextBar(ix, iy, saveCurr, loadVis, deleteSave, c);
-                prev.next.activate();
+                Color c = Color.FromArgb(byte.Parse(hex.Substring(1, 2), NumberStyles.HexNumber),
+                                         byte.Parse(hex.Substring(3, 2), NumberStyles.HexNumber),
+                                         byte.Parse(hex.Substring(5, 2), NumberStyles.HexNumber),
+                                         byte.Parse(hex.Substring(7, 2), NumberStyles.HexNumber));
+                return new SolidColorBrush(c);
             }
-            else
-            {
-                prev = new TextBar(ix, iy, saveCurr, loadVis, deleteSave, c);
-                prev.activate();
+
+            protected double max(double a, double b) {
+                return (a > b) ? a : b;
             }
-            c.Height += files.Length * 30;
+
+            protected double min(double a, double b){
+                return (a < b) ? a : b;
+            }
+
+            protected int max(int a, int b){
+                return (a > b) ? a : b;
+            }
+
+            protected int min(int a, int b){
+                return (a < b) ? a : b;
+            }
         }
 
-        private class FixPoints : CanColor
+        private class FixPoints : VisElement
         {
             private Canvas canv;
             private Ellipse[] dots;
@@ -338,23 +301,23 @@ namespace ModularVis
             private int savLen;
             private bool visible;
             private bool activeLineVisible;
-            public new bool colorActive;
-            public new Brush cBr;
+            public bool colorActive;
+            public Brush cBr;
 
 
             public FixPoints(Canvas c)
             {
                 canv = c;
-                savLen = 2;
+                savLen = 3;
                 visible = false;
                 activeLineVisible = false;
                 len = 0;
                 startRadius = 35;
-                endRadius = 10;
+                endRadius = 15;
                 currCount = 1;
                 fixTime = 30;
                 startOpacity = .5;
-                endOpacity = 0;
+                endOpacity = .25;
                 smooth = .7;
                 prev = new Point(0, 0);
                 dbr = new SolidColorBrush(System.Windows.Media.Colors.Black);
@@ -368,9 +331,9 @@ namespace ModularVis
                 potentialFix = new Point(0, 0);
                 block = new Point(0, 0);
                 double opacity = startOpacity;
-                double opacityInc = (startOpacity - endOpacity) / len;
+                double opacityInc = (startOpacity - endOpacity) / (len - 1);
                 double radius = startRadius;
-                double radiusInc = (startRadius - endRadius) / len;
+                double radiusInc = (startRadius - endRadius) / (len - 1);
                 for (int i = 0; i < len; i++)
                 {
                     points[i] = new Point(-100, -100);
@@ -718,6 +681,8 @@ namespace ModularVis
                 {
                     lines[i].Opacity = lineOpacity;
                 }
+                if (!activeLineVisible && len > 0)
+                    lines[len - 1].Opacity = 0;
             }
 
             public void setLength(int l)
@@ -743,9 +708,9 @@ namespace ModularVis
                     points[i] = new Point();
                 }
                 double opacity = startOpacity;
-                double opacityInc = (startOpacity - endOpacity) / len;
+                double opacityInc = (startOpacity - endOpacity) / (len - 1);
                 double radius = startRadius;
-                double radiusInc = (startRadius - endRadius) / len;
+                double radiusInc = (startRadius - endRadius) / (len - 1);
                 for (int i = 0; i < len; i++)
                 {
                     lines[i] = new Line();
@@ -775,6 +740,7 @@ namespace ModularVis
                     Canvas.SetLeft(dots[i], points[i].X - radius);
                     Canvas.SetTop(dots[i], points[i].Y - radius);
                     radius -= radiusInc;
+                    radius = Math.Abs(radius);
                     dots[i].Name = "d" + i.ToString();
                     dots[i].PreviewMouseRightButtonDown += dot_rightClicked;
                     dots[i].PreviewMouseLeftButtonDown += dot_leftClicked;
@@ -828,9 +794,9 @@ namespace ModularVis
                     c++;
                 }
                 double opacity = startOpacity;
-                double opacityInc = (startOpacity - endOpacity) / len;
+                double opacityInc = (startOpacity - endOpacity) / (len - 1);
                 double radius = startRadius;
-                double radiusInc = (startRadius - endRadius) / len;
+                double radiusInc = (startRadius - endRadius) / (len - 1);
                 for (int i = 0; i < len; i++)
                 {
                     lines[i] = new Line();
@@ -860,6 +826,7 @@ namespace ModularVis
                     Canvas.SetLeft(dots[i], points[i].X - radius);
                     Canvas.SetTop(dots[i], points[i].Y - radius);
                     radius -= radiusInc;
+                    radius = Math.Abs(radius);
                     dots[i].Name = "d" + i.ToString();
                     dots[i].PreviewMouseRightButtonDown += dot_rightClicked;
                     dots[i].PreviewMouseLeftButtonDown += dot_leftClicked;
@@ -966,14 +933,9 @@ namespace ModularVis
             {
                 return Math.Sqrt(Math.Pow(a.X - b.X, 2) + Math.Pow(a.Y - b.Y, 2));
             }
-
-            private int min(int a, int b)
-            {
-                return (a < b) ? a : b;
-            }
         }
 
-        private class GazeLine : CanColor
+        private class GazeLine : VisElement
         {
             private Canvas canv;
             private Line[] trail;
@@ -1359,14 +1321,9 @@ namespace ModularVis
             {
                 smooth = s;
             }
-
-            private int min(int a, int b)
-            {
-                return (a < b) ? a : b;
-            }
         }
 
-        private class GazeTrack : CanColor
+        private class GazeTrack : VisElement
         {
             private Canvas canv;
             private Ellipse body;
@@ -2084,7 +2041,320 @@ namespace ModularVis
             }
         }
 
-        private class TextBar {
+        #endregion
+
+        #region UI elements
+
+        public class SwatchControl
+        {
+            private Canvas canv;
+            private Action<Brush>[] elementFunc;
+            private Brush curr;
+            private Ellipse cursor;
+            private Rectangle overlay;
+
+            public SwatchControl(Action<Brush>[] e, Canvas c)
+            {
+                canv = c;
+                elementFunc = e;
+                curr = new SolidColorBrush(Colors.Black);
+
+                cursor = new Ellipse();
+                cursor.Width = 10;
+                cursor.Height = 10;
+                cursor.Fill = curr;
+                Canvas.SetLeft(cursor, -100);
+                Canvas.SetTop(cursor, 0);
+                Panel.SetZIndex(cursor, 850);
+                cursor.IsHitTestVisible = false;
+                canv.Children.Add(cursor);
+
+                overlay = new Rectangle();
+                overlay.Width = 3000;
+                overlay.Height = 3000;
+                overlay.Fill = curr;
+                overlay.Opacity = 0;
+                Canvas.SetLeft(overlay, 0);
+                Canvas.SetTop(overlay, 3000);
+                Panel.SetZIndex(overlay, 1000);
+                overlay.PreviewMouseDown += paint;
+                overlay.PreviewMouseMove += hover;
+                canv.Children.Add(overlay);
+            }
+
+            public void startColoring(Brush br)
+            {
+                curr = br;
+                cursor.Fill = br;
+                Canvas.SetTop(overlay, 0);
+                for (int i = 0; i < elementFunc.Length; i++)
+                {
+                    elementFunc[i](curr);
+                }
+                Canvas.SetLeft(cursor, -100);
+                cursor.Visibility = Visibility.Visible;
+            }
+
+            public void clearColor()
+            {
+                for (int i = 0; i < elementFunc.Length; i++)
+                {
+                    elementFunc[i](null);
+                }
+            }
+
+            private void hover(object sender, MouseEventArgs e)
+            {
+                Canvas.SetLeft(cursor, e.GetPosition(canv).X - cursor.Width / 2);
+                Canvas.SetTop(cursor, e.GetPosition(canv).Y - cursor.Height / 2);
+            }
+
+            private void paint(object sender, MouseButtonEventArgs e)
+            {
+                Canvas.SetTop(overlay, 3000);
+                cursor.Visibility = Visibility.Hidden;
+            }
+        }
+
+        public class Swatch
+        {
+            private Canvas canv;
+            private SwatchControl sc;
+            private Brush br;
+            private Rectangle body;
+            public const double Height = 20;
+            
+            public Swatch(Color color, double x, double y, SwatchControl swcont, Canvas c)
+            {
+                canv = c;
+                sc = swcont;
+                br = new SolidColorBrush(color);
+
+                body = new Rectangle();
+                body.Width = Height;
+                body.Height = Height;
+                body.RadiusX = Height / 8;
+                body.RadiusY = Height / 8;
+                body.Fill = br;
+                Canvas.SetLeft(body, x);
+                Canvas.SetTop(body, y);
+                body.PreviewMouseDown += body_clicked;
+                canv.Children.Add(body);
+            }
+
+            private void body_clicked(object sender, MouseButtonEventArgs e)
+            {
+                sc.startColoring(br);
+            }
+        }
+
+        private class SliderControl
+        {
+            private Canvas canv;
+            private Rectangle hover;
+            private Slider slider;
+            private int handleInd;
+
+            public SliderControl(Canvas c)
+            {
+                canv = c;
+                hover = new Rectangle();
+                Panel.SetZIndex(hover, 1000);
+                hover.Width = 6000;
+                hover.Height = 3000;
+                hover.Fill = new SolidColorBrush(Colors.Black);
+                hover.Opacity = 0;
+                Canvas.SetTop(hover, 3000);
+                Canvas.SetLeft(hover, -3000);
+                hover.PreviewMouseMove += onHover;
+                hover.PreviewMouseUp += disengage;
+                canv.Children.Add(hover);
+                slider = null;
+                handleInd = 0;
+            }
+
+            public void engage(Slider s, int h)
+            {
+                slider = s;
+                handleInd = h;
+                Canvas.SetTop(hover, 0);
+            }
+
+            public void disengage(object sender, MouseButtonEventArgs e)
+            {
+                Canvas.SetTop(hover, 3000);
+            }
+
+            public void onHover(object sender, MouseEventArgs e)
+            {
+                slider.setHandleX(handleInd, e.GetPosition(canv).X);
+                slider.activateControl(handleInd);
+            }
+        }
+
+        private class Slider
+        {
+            private Canvas canv;
+            private Rectangle track;
+            private Rectangle handle;
+            private SliderControl slideControl;
+            private Action<double> sendTo;
+            private double startVal, endVal;
+            private TextBlock labelBlock;
+            public double currVal;
+            public const double Height = 32;
+
+            public Slider(String label, double x, double y, double sV, double eV, Action<double> send, SliderControl sc, Canvas c)
+            {
+                canv = c;
+                slideControl = sc;
+                sendTo = send;
+                startVal = sV;
+                endVal = eV;
+                track = new Rectangle();
+                handle = new Rectangle();
+                track.Fill = new SolidColorBrush(Colors.LightGray);
+                handle.Fill = new SolidColorBrush(Colors.Black);
+                track.Width = 200;
+                track.Height = 20;
+                handle.Width = 7;
+                handle.Height = 12;
+                Canvas.SetTop(track, y);
+                Canvas.SetLeft(track, x);
+                Canvas.SetTop(handle, y + (track.Height - handle.Height) / 2);
+                Canvas.SetLeft(handle, x + (track.Width - handle.Width) / 2);
+                track.RadiusX = handle.Width / 4;
+                track.RadiusY = handle.Width / 4;
+                handle.RadiusX = handle.Width / 4;
+                handle.RadiusY = handle.Width / 4;
+                track.PreviewMouseDown += trackMouseDown;
+                handle.PreviewMouseDown += handleMouseDown;
+                Panel.SetZIndex(track, 900);
+                Panel.SetZIndex(handle, 901);
+                canv.Children.Add(track);
+                canv.Children.Add(handle);
+
+                labelBlock = new TextBlock();
+                labelBlock.Text = label;
+                labelBlock.FontSize = 12;
+                labelBlock.FontFamily = new FontFamily("Arial");
+                labelBlock.Width = track.Width;
+                labelBlock.TextAlignment = TextAlignment.Left;
+                Canvas.SetLeft(labelBlock, x + 5);
+                Canvas.SetTop(labelBlock, y + track.Height);
+                Panel.SetZIndex(labelBlock, 900);
+                labelBlock.IsHitTestVisible = false;
+                canv.Children.Add(labelBlock);
+            }
+
+            public void setHandleX(int ind, double x)
+            {
+                double trStart = Canvas.GetLeft(track);
+                x = (x < trStart + handle.Width / 2) ? trStart + handle.Width / 2 : x;
+                x = (x > trStart + track.Width - handle.Width / 2) ? trStart + track.Width - handle.Width / 2 : x;
+                Canvas.SetLeft(handle, x = (x - handle.Width / 2));
+                currVal = ((x - trStart) / track.Width) * (endVal - startVal) + startVal;
+            }
+
+            public void activateControl(int ind)
+            {
+                sendTo(currVal);
+            }
+
+            private void trackMouseDown(object sender, MouseButtonEventArgs e)
+            {
+                setHandleX(0, e.GetPosition(canv).X);
+                slideControl.engage(this, 0);
+            }
+
+            private void handleMouseDown(object sender, MouseButtonEventArgs e)
+            {
+                slideControl.engage(this, 0);
+            }
+        }
+
+        private class Toggle
+        {
+            private Canvas canv;
+            private Rectangle outer;
+            private Rectangle inner;
+            private TextBlock label;
+            private Func<bool> send;
+            private Func<bool> check;
+            private bool on;
+            public const double Height = 16;
+
+            public Toggle(String l, double x, double y, Func<bool> s, Func<bool> ch, Canvas c)
+            {
+                canv = c;
+                on = false;
+                send = s;
+                check = ch;
+
+                outer = new Rectangle();
+                outer.Width = Height;
+                outer.Height = Height;
+                outer.Fill = new SolidColorBrush(Colors.LightGray);
+                outer.RadiusX = outer.Width / 8;
+                outer.RadiusY = outer.Height / 8;
+                Canvas.SetLeft(outer, x);
+                Canvas.SetTop(outer, y);
+                outer.PreviewMouseDown += clicked;
+                outer.IsVisibleChanged += checkState;
+                canv.Children.Add(outer);
+
+                inner = new Rectangle();
+                inner.Width = 7;
+                inner.Height = 7;
+                inner.Fill = new SolidColorBrush(Colors.Black);
+                inner.RadiusX = inner.Width / 4;
+                inner.RadiusY = inner.Height / 4;
+                Canvas.SetLeft(inner, x + (outer.Width - inner.Width) / 2);
+                Canvas.SetTop(inner, y + (outer.Height - inner.Height) / 2);
+                inner.PreviewMouseDown += clicked;
+                inner.Visibility = Visibility.Hidden;
+                canv.Children.Add(inner);
+
+                label = new TextBlock();
+                label.Text = l;
+                label.FontSize = 12;
+                label.FontFamily = new FontFamily("Arial");
+                Canvas.SetLeft(label, x + outer.Width + 5);
+                Canvas.SetTop(label, y + (outer.Height - label.FontSize) / 2);
+                canv.Children.Add(label);
+            }
+
+            private void checkState(object sender, DependencyPropertyChangedEventArgs e)
+            {
+                on = check();
+
+                if (on)
+                {
+                    inner.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    inner.Visibility = Visibility.Hidden;
+                }
+            }
+
+            private void clicked(object sender, MouseButtonEventArgs e)
+            {
+                on = send();
+
+                if (on)
+                {
+                    inner.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    inner.Visibility = Visibility.Hidden;
+                }
+            }
+        }
+
+        private class TextBar
+        {
             private Canvas canv;
             private TextBox textBox;
             private Button go;
@@ -2100,8 +2370,10 @@ namespace ModularVis
             private double nextY;
             private System.Windows.Threading.DispatcherTimer timer;
             private bool sendDown;
+            public const double Height = 20;
 
-            public TextBar(double ix, double iy, Func<String, String> sv, Action<String> ld, Action<String> dl, Canvas c) {
+            public TextBar(double ix, double iy, Func<String, String> sv, Action<String> ld, Action<String> dl, Canvas c)
+            {
                 canv = c;
                 x = ix;
                 y = iy;
@@ -2154,7 +2426,8 @@ namespace ModularVis
                 delete = new Button();
             }
 
-            public TextBar(double ix, double iy, Func<String, String> sv, Action<String> ld, Action<String> dl, Canvas c, String name) {
+            public TextBar(double ix, double iy, Func<String, String> sv, Action<String> ld, Action<String> dl, Canvas c, String name)
+            {
                 canv = c;
                 x = ix;
                 y = iy;
@@ -2221,9 +2494,15 @@ namespace ModularVis
                 canv.Children.Add(delete);
             }
 
-            private void timer_tick(object sender, EventArgs e) {
+            public double getTextBarHeight() {
+                return textBox.Height;
+            }
+
+            private void timer_tick(object sender, EventArgs e)
+            {
                 double delta = 0;
-                if (sendDown) {
+                if (sendDown)
+                {
                     if (nextY - next.y > 1)
                     {
                         delta = next.y - next.setY(next.y * .7 + nextY * .3);
@@ -2235,7 +2514,8 @@ namespace ModularVis
                         timer.Stop();
                     }
                 }
-                else {
+                else
+                {
                     if (y - nextY > 1)
                     {
                         delta = y - setY(y * .7 + nextY * .3);
@@ -2250,7 +2530,8 @@ namespace ModularVis
                     canv.Height -= delta;
             }
 
-            private void convertToSaved() {
+            private void convertToSaved()
+            {
                 textBox.Background = new SolidColorBrush(Colors.LightGray);
                 textBox.Text = visName;
                 textBox.Focusable = false;
@@ -2279,7 +2560,8 @@ namespace ModularVis
                 canv.Children.Add(delete);
             }
 
-            private void remove(object sender, MouseButtonEventArgs e) {
+            private void remove(object sender, MouseButtonEventArgs e)
+            {
                 del(visName);
                 canv.Children.Remove(textBox);
                 canv.Children.Remove(go);
@@ -2288,7 +2570,8 @@ namespace ModularVis
                 next.moveUp();
             }
 
-            public void moveUp() {
+            public void moveUp()
+            {
                 deactivate();
                 nextY = y - textBox.Height - 10;
                 sendDown = false;
@@ -2297,8 +2580,10 @@ namespace ModularVis
                     next.moveUp();
             }
 
-            private void goClick(object sender, MouseButtonEventArgs e) {
-                if (!saved) {
+            private void goClick(object sender, MouseButtonEventArgs e)
+            {
+                if (!saved)
+                {
                     visName = save(textBox.Text);
                     saved = true;
                     convertToSaved();
@@ -2309,20 +2594,24 @@ namespace ModularVis
                     sendDown = true;
                     timer.Start();
                 }
-                else {
+                else
+                {
                     load(visName);
                 }
             }
 
-            private void textClick(object sender, MouseButtonEventArgs e) {
-                if (firstClick) {
+            private void textClick(object sender, MouseButtonEventArgs e)
+            {
+                if (firstClick)
+                {
                     firstClick = false;
                     textBox.Foreground = new SolidColorBrush(Colors.Black);
                     textBox.Text = "";
                 }
             }
 
-            public double setY(double iy) {
+            public double setY(double iy)
+            {
                 y = iy;
                 Canvas.SetTop(textBox, y);
                 Canvas.SetTop(go, y);
@@ -2330,18 +2619,21 @@ namespace ModularVis
                 return y;
             }
 
-            public void deactivate() {
+            public void deactivate()
+            {
                 go.IsHitTestVisible = false;
                 delete.IsHitTestVisible = false;
             }
 
-            public void activate() {
+            public void activate()
+            {
                 go.IsHitTestVisible = true;
                 delete.IsHitTestVisible = true;
             }
         }
 
-        private class RecordInterface {
+        private class RecordInterface
+        {
             private Canvas canv;
             private Button record;
             private Button play;
@@ -2367,8 +2659,10 @@ namespace ModularVis
             private double totalTime;
             private double maxBar;
             private bool recordedFull;
+            public const double Height = 20;
 
-            public RecordInterface(double ix, double iy, String p, Action<bool> start, Action<bool, String> stop, Action pstart, Action pstop, Canvas c) {
+            public RecordInterface(double ix, double iy, String p, Action<bool> start, Action<bool, String> stop, Action pstart, Action pstop, Canvas c)
+            {
                 canv = c;
                 recording = false;
                 playing = false;
@@ -2482,14 +2776,21 @@ namespace ModularVis
                 timer.Tick += timer_tick;
             }
 
-            private void play_click(object sender, MouseButtonEventArgs e) {
+            public double getRecordInterfaceHeight() {
+                return record.Height;
+            }
+
+            private void play_click(object sender, MouseButtonEventArgs e)
+            {
                 progress.Fill = new SolidColorBrush(Colors.Red);
                 mediaProgress.Fill = new SolidColorBrush(Colors.Red);
                 Canvas.SetLeft(progress, Canvas.GetLeft(dispTrack));
                 progress.Width = 0;
                 playing = !playing;
-                if (playing) {
-                    if (playing = File.Exists(path)) {
+                if (playing)
+                {
+                    if (playing = File.Exists(path))
+                    {
                         recorded = File.ReadAllLines(path);
                         if (recorded[recorded.Length - 1].Contains("-full") &&
                            recorded[recorded.Length - 1].Contains("-" + vidID.ToString() + " "))
@@ -2501,7 +2802,8 @@ namespace ModularVis
                         record.IsHitTestVisible = false;
                     }
                 }
-                else {
+                else
+                {
                     timer.Stop();
                     stopPlay();
                     playSquare.Visibility = Visibility.Hidden;
@@ -2509,7 +2811,8 @@ namespace ModularVis
                 }
             }
 
-            private void record_click(object sender, MouseButtonEventArgs e) {
+            private void record_click(object sender, MouseButtonEventArgs e)
+            {
                 progress.Fill = new SolidColorBrush(Colors.PaleVioletRed);
                 mediaProgress.Fill = new SolidColorBrush(Colors.PaleVioletRed);
                 recordedFull = false;
@@ -2517,14 +2820,16 @@ namespace ModularVis
                 progress.Width = 0;
                 mediaProgress.Width = 0;
                 recording = !recording;
-                if (recording) {
+                if (recording)
+                {
                     stopSquare.Visibility = Visibility.Visible;
                     timer.Start();
                     recordGaze(vid != null);
                     play.IsHitTestVisible = false;
                     firstFrame = true;
                 }
-                else {
+                else
+                {
                     stopSquare.Visibility = Visibility.Hidden;
                     timer.Stop();
                     String foot = (recordedFull) ? "-full" : "-clip";
@@ -2534,7 +2839,8 @@ namespace ModularVis
                 }
             }
 
-            private void simulate_record_click(){
+            private void simulate_record_click()
+            {
                 recordedFull = true;
                 Canvas.SetLeft(progress, Canvas.GetLeft(dispTrack));
                 progress.Width = 0;
@@ -2559,20 +2865,26 @@ namespace ModularVis
                 }
             }
 
-            private void timer_tick(object sender, EventArgs e) {
-                if (recording && vid == null) {
+            private void timer_tick(object sender, EventArgs e)
+            {
+                if (recording && vid == null)
+                {
                     dispRecording();
                 }
-                else if (recording && vid != null) {
+                else if (recording && vid != null)
+                {
                     dispMediaRecording();
                 }
-                else if (playing) {
+                else if (playing)
+                {
                     dispPlaying();
                 }
             }
 
-            private void dispMediaRecording() {
-                if (firstFrame) { 
+            private void dispMediaRecording()
+            {
+                if (firstFrame)
+                {
                     startTime = vid.Position.TotalSeconds;
                     totalTime = vid.NaturalDuration.TimeSpan.TotalSeconds;
                     double rat = startTime / totalTime;
@@ -2587,31 +2899,37 @@ namespace ModularVis
                     simulate_record_click();
             }
 
-            private void dispRecording() {
+            private void dispRecording()
+            {
                 double speed = 1;
                 double maxWidth = 40;
                 double pL = Canvas.GetLeft(progress);
                 double tL = Canvas.GetLeft(dispTrack);
                 double tR = tL + dispTrack.Width;
-                if (pL == tL && progress.Width < 40) {
+                if (pL == tL && progress.Width < 40)
+                {
                     progress.Width = min(maxWidth, progress.Width + speed);
                 }
-                else if (pL >= tL && pL + speed < tR) {
+                else if (pL >= tL && pL + speed < tR)
+                {
                     Canvas.SetLeft(progress, pL = pL + speed);
                     progress.Width = min(maxWidth, tR - pL);
                 }
-                else {
+                else
+                {
                     progress.Width = 0;
                     Canvas.SetLeft(progress, tL);
                 }
             }
 
-            private void dispPlaying() {
+            private void dispPlaying()
+            {
                 if (recorded.Length > 0)
                     progress.Width = dispTrack.Width * (currInd + 1) / recorded.Length;
             }
 
-            public Point next() {
+            public Point next()
+            {
                 if (vid != null && recordedFull)
                     currInd = (int)((vid.Position.TotalSeconds / vid.NaturalDuration.TimeSpan.TotalSeconds) * (recorded.Length - 2));
                 else
@@ -2622,23 +2940,27 @@ namespace ModularVis
                                  Convert.ToDouble(curr.Substring(curr.IndexOf(":") + 1, curr.IndexOf(" ") - curr.IndexOf(":"))));
             }
 
-            public void attachMedia(MediaElement me, int id) {
+            public void attachMedia(MediaElement me, int id)
+            {
                 recordedFull = false;
                 vid = me;
                 vidID = id;
             }
 
-            public void detatchMedia() {
+            public void detatchMedia()
+            {
                 recordedFull = false;
                 vid = null;
                 vidID = -1;
             }
 
-            private double max(double a, double b) {
+            private double max(double a, double b)
+            {
                 return (a > b) ? a : b;
             }
 
-            private double min(double a, double b) {
+            private double min(double a, double b)
+            {
                 return (a < b) ? a : b;
             }
 
@@ -2648,28 +2970,41 @@ namespace ModularVis
             }
         }
 
-        public void recordGaze(bool media) {
+        #endregion
+
+        #region utility functions
+
+        #region recording
+        public void recordGaze(bool media)
+        {
             recording = true;
-            if (media) {
+            if (media)
+            {
                 rw = new StreamWriter(tempRecordPath1);
             }
-            else {
+            else
+            {
                 rw = new StreamWriter(recordPath);
             }
         }
 
-        public void stopRecord(bool media, String footer) {
+        public void stopRecord(bool media, String footer)
+        {
             recording = false;
-            if (media) {
+            if (media)
+            {
                 rw.Close();
                 rw = new StreamWriter(recordPath);
                 String[] tFile = File.ReadAllLines(tempRecordPath1);
-                for (int i = 0; i < tFile.Length; i++) {
+                for (int i = 0; i < tFile.Length; i++)
+                {
                     rw.WriteLine(tFile[i]);
                 }
-                if (File.Exists(tempRecordPath2)) {
+                if (File.Exists(tempRecordPath2))
+                {
                     tFile = File.ReadAllLines(tempRecordPath2);
-                    for (int i = 0; i < tFile.Length; i++){
+                    for (int i = 0; i < tFile.Length; i++)
+                    {
                         rw.WriteLine(tFile[i]);
                     }
                 }
@@ -2678,43 +3013,93 @@ namespace ModularVis
                 File.Delete(tempRecordPath2);
                 rw.Close();
             }
-            else {
+            else
+            {
                 rw.WriteLine(footer);
                 rw.Close();
             }
         }
 
-        public void startPlayback() {
+        public void startPlayback()
+        {
             playing = true;
         }
 
-        public void stopPlayback() {
+        public void stopPlayback()
+        {
             playing = false;
         }
+        #endregion
 
-        private void picFreezeSync(bool frz) {
-            bg.Opacity = (frz) ? .5 : 1;
-        }
-
-        private void vidFreezeSync(bool frz) {
-            if (frz) {
-                vid.Opacity = .5;
-                vid.Pause();
+        #region save/load
+        public String saveCurr(String name)
+        {
+            int savNum = 0;
+            String currPath = savPath + name + ".txt";
+            while (File.Exists(currPath))
+            {
+                savNum++;
+                currPath = savPath + name + savNum.ToString() + ".txt";
             }
-            else {
-                vid.Opacity = 1;
-                vid.Play();
+            name = (savNum != 0) ? name + savNum.ToString() : name;
+
+            TextWriter tw = new StreamWriter(currPath);
+            tw.WriteLine("s:" + smoothness.ToString() + " " + "b:" + blur.ToString() + " ");
+            tw.WriteLine(t1.getParams());
+            tw.WriteLine(t2.getParams());
+            tw.WriteLine(t3.getParams());
+            tw.Close();
+
+            return name;
+        }
+
+        public void loadVis(String name)
+        {
+            String path = savPath + name + ".txt";
+            if (File.Exists(path))
+            {
+                String[] loaded = File.ReadAllLines(path);
+                loadOddParams(loaded[0]);
+                t1.loadFromParams(loaded[1]);
+                t2.loadFromParams(loaded[2]);
+                t3.loadFromParams(loaded[3]);
             }
-            bg.Opacity = 1;
         }
 
-        private void vid_ended(object sender, EventArgs e) {
-            looped = true;
-            vid.Position = TimeSpan.Zero;
-            vid.Play();
+        public void deleteSave(String name)
+        {
+            String p;
+            if (File.Exists(p = savPath + name + ".txt"))
+                File.Delete(p);
         }
 
-        public void loadOddParams(String par) {
+        public double loadVisFiles(double ix, double iy, Canvas c)
+        {
+            String[] files = Directory.GetFiles(savPath.Substring(0, savPath.Length - 1));
+            TextBar prev = null;
+            foreach (String file in files)
+            {
+                TextBar tb = new TextBar(ix, iy, saveCurr, loadVis, deleteSave, c, file.Substring(savPath.Length, file.Length - savPath.Length - 4));
+                if (prev != null)
+                    prev.next = tb;
+                prev = tb;
+                iy += TextBar.Height + 10;
+            }
+            if (prev != null)
+            {
+                prev.next = new TextBar(ix, iy, saveCurr, loadVis, deleteSave, c);
+                prev.next.activate();
+            }
+            else
+            {
+                prev = new TextBar(ix, iy, saveCurr, loadVis, deleteSave, c);
+                prev.activate();
+            }
+            return (files.Length + 1) * (TextBar.Height + 10) - 10;
+        }
+
+        public void loadOddParams(String par)
+        {
             int currInd = 0;
             int endInd = 0;
             String key = "s:";
@@ -2726,31 +3111,59 @@ namespace ModularVis
             endInd = par.IndexOf(" ", currInd);
             setBgBlur(Convert.ToDouble(par.Substring(currInd, endInd - currInd + 1)));
         }
+        
+        #endregion
 
-        public void setBgBlur(double b) {
+        #region freezing
+        private void picFreezeSync(bool frz)
+        {
+            bg.Opacity = (frz) ? .5 : 1;
+        }
+
+        private void vidFreezeSync(bool frz)
+        {
+            if (frz)
+            {
+                vid.Opacity = .5;
+                vid.Pause();
+            }
+            else
+            {
+                vid.Opacity = 1;
+                vid.Play();
+            }
+            bg.Opacity = 1;
+        }
+        #endregion
+
+        #region general setting
+        public void setBgBlur(double b)
+        {
             blur = b;
             BlurEffect bgb = new BlurEffect();
             bgb.Radius = b;
             bg.Effect = bgb;
         }
 
-        public void setSmoothness(double s) {
+        public void setSmoothness(double s)
+        {
             smoothness = s;
             t1.setSmooth(s);
             t2.setSmooth(s);
             t3.setSmooth(s);
         }
+        #endregion
 
-        private void gazePoint(object sender, EyeXFramework.GazePointEventArgs e)
-        {
-            curr.X = e.X;
-            curr.Y = e.Y;
-        }
+        #endregion
+
+        #region global event handlers
 
         private void update(object sender, EventArgs e)
         {
-            if (recording && !freeze) {
-                if (looped) {
+            if (recording && !freeze)
+            {
+                if (looped)
+                {
                     rw.Close();
                     rw = new StreamWriter(tempRecordPath2);
                     looped = false;
@@ -2760,179 +3173,141 @@ namespace ModularVis
 
             Point fromScreen = PointFromScreen(curr);
 
-            if (playing && !freeze) {
+            if (playing && !freeze)
+            {
                 fromScreen = PointFromScreen(ri.next());
             }
 
-            if (!freeze) {
+            if (!freeze)
+            {
                 t1.next(fromScreen);
                 t2.next(fromScreen);
                 t3.next(fromScreen);
             }
         }
-
-        public class SwatchControl {
-            private Canvas canv;
-            private Action<Brush>[] elementFunc;
-            private Brush curr;
-            private Ellipse cursor;
-            private Rectangle overlay;
-
-            public SwatchControl(Action<Brush>[] e, Canvas c) {
-                canv = c;
-                elementFunc = e;
-                curr = new SolidColorBrush(Colors.Black);
-
-                cursor = new Ellipse();
-                cursor.Width = 10;
-                cursor.Height = 10;
-                cursor.Fill = curr;
-                Canvas.SetLeft(cursor, -100);
-                Canvas.SetTop(cursor, 0);
-                Panel.SetZIndex(cursor, 850);
-                cursor.IsHitTestVisible = false;
-                canv.Children.Add(cursor);
-
-                overlay = new Rectangle();
-                overlay.Width = 3000;
-                overlay.Height = 3000;
-                overlay.Fill = curr;
-                overlay.Opacity = 0;
-                Canvas.SetLeft(overlay, 0);
-                Canvas.SetTop(overlay, 3000);
-                Panel.SetZIndex(overlay, 1000);
-                overlay.PreviewMouseDown += paint;
-                overlay.PreviewMouseMove += hover;
-                canv.Children.Add(overlay);
-            }
-
-            public void startColoring(Brush br) {
-                curr = br;
-                cursor.Fill = br;
-                Canvas.SetTop(overlay, 0);
-                for (int i = 0; i < elementFunc.Length; i++) {
-                    elementFunc[i](curr);
-                }
-                Canvas.SetLeft(cursor, -100);
-                cursor.Visibility = Visibility.Visible;
-            }
-
-            public void clearColor() {
-                for (int i = 0; i < elementFunc.Length; i++) {
-                    elementFunc[i](null);
-                }
-            }
-
-            private void hover(object sender, MouseEventArgs e) {
-                Canvas.SetLeft(cursor, e.GetPosition(canv).X - cursor.Width / 2);
-                Canvas.SetTop(cursor, e.GetPosition(canv).Y - cursor.Height / 2);
-            }
-
-            private void paint(object sender, MouseButtonEventArgs e) {
-                Canvas.SetTop(overlay, 3000);
-                cursor.Visibility = Visibility.Hidden;
-            }
-        }
-
-        public class Swatch {
-            private Canvas canv;
-            private SwatchControl sc;
-            private Brush br;
-            private Rectangle body;
-            private double size;
-
-            public Swatch(Color color, double x, double y, double s, SwatchControl swcont, Canvas c) {
-                canv = c;
-                sc = swcont;
-                br = new SolidColorBrush(color);
-                size = s;
-
-                body = new Rectangle();
-                body.Width = size;
-                body.Height = size;
-                body.RadiusX = size / 8;
-                body.RadiusY = size / 8;
-                body.Fill = br;
-                Canvas.SetLeft(body, x);
-                Canvas.SetTop(body, y);
-                body.PreviewMouseDown += body_clicked;
-                canv.Children.Add(body);
-            }
-
-            private void body_clicked(object sender, MouseButtonEventArgs e)
+        
+        private void onKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key.Equals(Key.Space))
             {
-                sc.startColoring(br);
-            }
-        }
-
-        public abstract class CanColor {
-            public abstract void setColor(int id, Brush b);
-            public bool colorActive;
-            public Brush cBr;
-
-            public Brush brushFromHex(String hex) {
-                Color c = Color.FromArgb(byte.Parse(hex.Substring(1, 2), NumberStyles.HexNumber),
-                                         byte.Parse(hex.Substring(3, 2), NumberStyles.HexNumber),
-                                         byte.Parse(hex.Substring(5, 2), NumberStyles.HexNumber),
-                                         byte.Parse(hex.Substring(7, 2), NumberStyles.HexNumber));
-                return new SolidColorBrush(c);
-            }
-        }
-
-        public class EnvLens {
-            private Canvas canv;
-            private Ellipse lens;
-            private Point prev;
-            private int radius;
-            private double smooth;
-            private string img;
-            private double zoom;
-
-            public EnvLens(Canvas c, String i) {
-                canv = c;
-                img = i;
-                prev = new Point(100, 100);
-                radius = 70;
-                smooth = .7;
-                zoom = 1;
-                lens = new Ellipse();
-                lens.Width = 2 * radius;
-                lens.Height = 2 * radius;
-                Panel.SetZIndex(lens, 51);
-                lens.Fill = new SolidColorBrush(Colors.Black);
-                canv.Children.Add(lens);
-            }
-
-            public void next(Point p) {
-                prev.X = prev.X * smooth + p.X * (1 - smooth);
-                prev.Y = prev.Y * smooth + p.Y * (1 - smooth);
-
-                Canvas.SetLeft(lens, prev.X - radius);
-                Canvas.SetTop(lens, prev.Y - radius);
-
-                Rectangle bg = canv.FindName("bg") as Rectangle;
-
-                try
+                freeze = !freeze;
+                picFreezeSync(freeze);
+                if (vid != null && vid.IsLoaded)
                 {
-                    BitmapImage src = new BitmapImage();
-                    src.BeginInit();
-                    src.UriSource = new Uri(img, UriKind.Relative);
-                    src.CacheOption = BitmapCacheOption.OnLoad;
-                    src.EndInit();
-                    double ratioX = src.PixelWidth / bg.Width;
-                    double ratioY = src.PixelHeight / bg.Height;
-                    ImageBrush temp = new ImageBrush(new CroppedBitmap(src, new Int32Rect((int)((prev.X - radius * zoom) * ratioX),
-                                                                                          (int)((prev.Y - radius * zoom) * ratioY),
-                                                                                          (int)((2 * radius * zoom) * ratioX),
-                                                                                          (int)((2 * radius * zoom) * ratioY))));
-                    temp.Stretch = Stretch.Fill;
-                    lens.Fill = temp;
+                    vidFreezeSync(freeze);
                 }
-                catch { }
+            }
+            else if (e.Key.Equals(Key.Left) || e.Key.Equals(Key.Right))
+            {
+                currBgInd = (e.Key.Equals(Key.Left)) ? max(currBgInd - 1, 0) : min(currBgInd + 1, backgrounds.Length - 1);
+                String file = backgrounds[currBgInd];
+                picFreezeSync(freeze);
+                canv.Children.Remove(vid);
+                vid = null;
+                ri.detatchMedia();
+                if (file.Substring(0, 1).Equals("v"))
+                {
+                    vid = new MediaElement();
+                    vid.LoadedBehavior = System.Windows.Controls.MediaState.Manual;
+                    vid.UnloadedBehavior = System.Windows.Controls.MediaState.Manual;
+                    vid.Source = new Uri(file.Substring(1), UriKind.Relative);
+                    vid.Width = canv.ActualWidth;
+                    Canvas.SetTop(vid, 100);
+                    Panel.SetZIndex(vid, 0);
+                    canv.Children.Add(vid);
+                    vid.Play();
+                    Thread.Sleep(50);
+                    vidFreezeSync(freeze);
+                    vid.MediaEnded += vid_ended;
+                    ri.attachMedia(vid, currBgInd);
+                    file = "blackBg.jpg";
+                }
+                BitmapImage src = new BitmapImage();
+                src.BeginInit();
+                src.UriSource = new Uri(file, UriKind.Relative);
+                src.CacheOption = BitmapCacheOption.OnLoad;
+                src.EndInit();
+                ImageBrush imBr = new ImageBrush(src);
+                imBr.Stretch = Stretch.UniformToFill;
+                bg.Fill = imBr;
+
+                t1.setEnvImg(file);
+            }
+            else if (e.Key.Equals(Key.Escape))
+            {
+                this.Close();
             }
         }
 
-        private class Warp {
+        private void vid_ended(object sender, EventArgs e)
+        {
+            if(vid != null) { 
+                looped = true;
+                vid.Position = TimeSpan.Zero;
+                vid.Play();
+            }
+        }
+
+        private void gazePoint(object sender, EyeXFramework.GazePointEventArgs e)
+        {
+            curr.X = e.X;
+            curr.Y = e.Y;
+        }
+
+        private void selectMenu(object sender, MouseButtonEventArgs e) {
+            Rectangle selected = sender as Rectangle;
+            int menuInd = -1;
+            for (int i = 0; i < menuTabs.Length; i++) {
+                if (selected.Name.Equals(menuTabs[i].Name))
+                    menuInd = i;
+            }
+            if (menus[menuInd].Visibility == Visibility.Hidden) {
+                for (int i = 0; i < menuTabs.Length; i++){
+                    menus[i].Visibility = Visibility.Hidden;
+                    menuTabs[i].StrokeThickness = UIstroke;
+                    Panel.SetZIndex(menuTabs[i], 800);
+                }
+                menus[menuInd].Visibility = Visibility.Visible;
+                menuTabs[menuInd].StrokeThickness = 0;
+                Panel.SetZIndex(menuTabs[menuInd], 802);
+                menuFade.Visibility = Visibility.Visible;
+            }
+            else {
+                menus[menuInd].Visibility = Visibility.Hidden;
+                menuTabs[menuInd].StrokeThickness = UIstroke;
+                Panel.SetZIndex(menuTabs[menuInd], 800);
+                menuFade.Visibility = Visibility.Hidden;
+            }
+        }
+
+        #endregion
+        
+        #region convenience functions
+
+        private int min(int a, int b) {
+            return (a < b) ? a : b;
+        }
+
+        private int max(int a, int b){
+            return (a > b) ? a : b;
+        }
+
+        private double min(double a, double b)
+        {
+            return (a < b) ? a : b;
+        }
+
+        private double max(double a, double b)
+        {
+            return (a > b) ? a : b;
+        }
+
+        #endregion
+
+        #region in progress
+
+        private class Warp
+        {
             private Canvas canv;
             private Polygon[,] frame;
             private Point[,] points;
@@ -2943,7 +3318,8 @@ namespace ModularVis
             private int dwidth, dheight;
             private double stepX, stepY;
 
-            public Warp(Canvas c, string img) {
+            public Warp(Canvas c, string img)
+            {
                 canv = c;
                 prev = new Point(0, 0);
                 pull = 10;
@@ -2955,8 +3331,10 @@ namespace ModularVis
                 stepY = height / (dheight - 1);
                 frame = new Polygon[dheight - 1, dwidth - 1];
                 points = new Point[dheight, dwidth];
-                for (int y = 0; y < dheight; y++) {
-                    for (int x = 0; x < dwidth; x++) {
+                for (int y = 0; y < dheight; y++)
+                {
+                    for (int x = 0; x < dwidth; x++)
+                    {
                         points[y, x] = new Point(x * stepX, y * stepY);
                     }
                 }
@@ -2966,8 +3344,10 @@ namespace ModularVis
                 src.CacheOption = BitmapCacheOption.OnLoad;
                 src.EndInit();
 
-                for (int y = 0; y < dheight - 1; y++) {
-                    for (int x = 0; x < dwidth - 1; x++) {
+                for (int y = 0; y < dheight - 1; y++)
+                {
+                    for (int x = 0; x < dwidth - 1; x++)
+                    {
                         frame[y, x] = new Polygon();
                         frame[y, x].Points.Add(points[y, x]);
                         frame[y, x].Points.Add(points[y, x + 1]);
@@ -2981,14 +3361,17 @@ namespace ModularVis
                 }
             }
 
-            public void next(Point p) {
+            public void next(Point p)
+            {
                 prev.X = prev.X * smooth + p.X * (1 - smooth);
                 prev.Y = prev.Y * smooth + p.Y * (1 - smooth);
 
                 double thisPull;
                 Point thisStart = new Point();
-                for (int y = 0; y < dheight; y++) {
-                    for (int x = 0; x < dwidth; x++) {
+                for (int y = 0; y < dheight; y++)
+                {
+                    for (int x = 0; x < dwidth; x++)
+                    {
                         thisStart.X = x * stepX;
                         thisStart.Y = y * stepY;
                         thisPull = pull / distance(prev, thisStart);
@@ -2997,8 +3380,10 @@ namespace ModularVis
                         points[y, x].Y = thisStart.Y * (1 - thisPull) + prev.Y * thisPull;
                     }
                 }
-                for (int y = 0; y < dheight - 1; y++) {
-                    for (int x = 0; x < dwidth - 1; x++) {
+                for (int y = 0; y < dheight - 1; y++)
+                {
+                    for (int x = 0; x < dwidth - 1; x++)
+                    {
                         frame[y, x].Points[0] = points[y, x];
                         frame[y, x].Points[1] = points[y, x + 1];
                         frame[y, x].Points[2] = points[y + 1, x + 1];
@@ -3018,418 +3403,6 @@ namespace ModularVis
             }
         }
 
-        private class EnvGaze : CanColor {
-            private Canvas canv;
-            private double width, height;
-            private Ellipse[,] dots;
-            private Brush br;
-            private Point prev;
-            private double radius;
-            private double opacity;
-            private double pull;
-            private double smooth;
-            private int dwidth, dheight;
-            private double stepX, stepY;
-
-            public EnvGaze(Canvas c) {
-                canv = c;
-                br = new SolidColorBrush(Colors.Black);
-                prev = new Point(0, 0);
-                width = canv.ActualWidth - SystemParameters.WindowNonClientFrameThickness.Left - SystemParameters.WindowNonClientFrameThickness.Right;
-                height = canv.ActualHeight - SystemParameters.WindowNonClientFrameThickness.Top - SystemParameters.WindowNonClientFrameThickness.Bottom;
-                radius = 3;
-                opacity = .5;
-                pull = 30;
-                smooth = .7;
-                dwidth = 15;
-                dheight = (int)(height * (dwidth / width));
-                stepX = width / (dwidth - 1);
-                stepY = height / (dheight - 1);
-                dots = new Ellipse[dheight, dwidth];
-                for (int y = 0; y < dheight; y++) {
-                    for (int x = 0; x < dwidth; x++) {
-                        dots[y, x] = new Ellipse();
-                        dots[y, x].Width = radius * 2;
-                        dots[y, x].Height = radius * 2;
-                        dots[y, x].Opacity = opacity;
-                        dots[y, x].Fill = br;
-                        Canvas.SetLeft(dots[y, x], x * stepX);
-                        Canvas.SetTop(dots[y, x], y * stepY);
-                        canv.Children.Add(dots[y, x]);
-                    }
-                }
-            }
-
-            public void next(Point p)
-            {
-                prev.X = prev.X * smooth + p.X * (1 - smooth);
-                prev.Y = prev.Y * smooth + p.Y * (1 - smooth);
-
-                double thisPull;
-                Point thisStart = new Point();
-                for (int y = 0; y < dheight; y++) {
-                    for (int x = 0; x < dwidth; x++) {
-                        thisStart.X = x * stepX;
-                        thisStart.Y = y * stepY;
-                        thisPull = pull / distance(prev, thisStart);
-                        thisPull = min(thisPull, .9);
-                        Canvas.SetLeft(dots[y, x], thisStart.X * (1 - thisPull) + prev.X * thisPull);
-                        Canvas.SetTop(dots[y, x], thisStart.Y * (1 - thisPull) + prev.Y * thisPull);
-                    }
-                }
-            }
-
-            public void setDensity(int d) {
-                for (int y = 0; y < dheight; y++) {
-                    for (int x = 0; x < dwidth; x++) {
-                        canv.Children.Remove(dots[y, x]);
-                    }
-                }
-                dwidth = d;
-                dheight = (int)(height * (dwidth / width));
-                stepX = width / (dwidth - 1);
-                stepY = height / (dheight - 1);
-                dots = new Ellipse[dheight, dwidth];
-                for (int y = 0; y < dheight; y++) {
-                    for (int x = 0; x < dwidth; x++) {
-                        dots[y, x] = new Ellipse();
-                        dots[y, x].Width = radius * 2;
-                        dots[y, x].Height = radius * 2;
-                        dots[y, x].Opacity = opacity;
-                        dots[y, x].Fill = br;
-                        Canvas.SetLeft(dots[y, x], x * stepX);
-                        Canvas.SetTop(dots[y, x], y * stepY);
-                        canv.Children.Add(dots[y, x]);
-                    }
-                }
-            }
-
-            public override void setColor(int id, Brush b) {
-
-            }
-
-            private double min(double a, double b) {
-                return (a < b) ? a : b;
-            }
-
-            private double distance(Point a, Point b) {
-                return Math.Sqrt(Math.Pow(a.X - b.X, 2) + Math.Pow(a.Y - b.Y, 2));
-            }
-        }
-
-        private class Toggle {
-            private Canvas canv;
-            private Rectangle outer;
-            private Rectangle inner;
-            private TextBlock label;
-            private Func<bool> send;
-            private Func<bool> check;
-            private bool on;
-
-            public Toggle(String l, double x, double y, Func<bool> s, Func<bool> ch, Canvas c) {
-                canv = c;
-                on = false;
-                send = s;
-                check = ch;
-
-                outer = new Rectangle();
-                outer.Width = 16;
-                outer.Height = 16;
-                outer.Fill = new SolidColorBrush(Colors.LightGray);
-                outer.RadiusX = outer.Width / 8;
-                outer.RadiusY = outer.Height / 8;
-                Canvas.SetLeft(outer, x);
-                Canvas.SetTop(outer, y);
-                outer.PreviewMouseDown += clicked;
-                outer.IsVisibleChanged += checkState;
-                canv.Children.Add(outer);
-
-                inner = new Rectangle();
-                inner.Width = 7;
-                inner.Height = 7;
-                inner.Fill = new SolidColorBrush(Colors.Black);
-                inner.RadiusX = inner.Width / 4;
-                inner.RadiusY = inner.Height / 4;
-                Canvas.SetLeft(inner, x + (outer.Width - inner.Width) / 2);
-                Canvas.SetTop(inner, y + (outer.Height - inner.Height) / 2);
-                inner.PreviewMouseDown += clicked;
-                inner.Visibility = Visibility.Hidden;
-                canv.Children.Add(inner);
-
-                label = new TextBlock();
-                label.Text = l;
-                label.FontSize = 12;
-                label.FontFamily = new FontFamily("Arial");
-                Canvas.SetLeft(label, x + outer.Width + 5);
-                Canvas.SetTop(label, y + (outer.Height - label.FontSize) / 2);
-                canv.Children.Add(label);
-            }
-
-            private void checkState(object sender, DependencyPropertyChangedEventArgs e) {
-                on = check();
-
-                if (on)
-                {
-                    inner.Visibility = Visibility.Visible;
-                }
-                else
-                {
-                    inner.Visibility = Visibility.Hidden;
-                }
-            }
-
-            private void clicked(object sender, MouseButtonEventArgs e) {
-                on = send();
-
-                if (on) {
-                    inner.Visibility = Visibility.Visible;
-                }
-                else {
-                    inner.Visibility = Visibility.Hidden;
-                }
-            }
-        }
-
-        private class Slider
-        {
-            private Canvas canv;
-            private Rectangle track;
-            private Rectangle handle;
-            private SliderControl slideControl;
-            private Action<double> sendTo;
-            private double startVal, endVal;
-            private String label;
-            public double currVal;
-
-            public Slider(String l, double x, double y, double sV, double eV, Action<double> send, SliderControl sc, Canvas c)
-            {
-                canv = c;
-                slideControl = sc;
-                sendTo = send;
-                label = l;
-                startVal = sV;
-                endVal = eV;
-                track = new Rectangle();
-                handle = new Rectangle();
-                track.Fill = new SolidColorBrush(Colors.LightGray);
-                handle.Fill = new SolidColorBrush(Colors.Black);
-                track.Width = 200;
-                track.Height = 20;
-                handle.Width = 7;
-                handle.Height = 12;
-                Canvas.SetTop(track, y);
-                Canvas.SetLeft(track, x);
-                Canvas.SetTop(handle, y + (track.Height - handle.Height) / 2);
-                Canvas.SetLeft(handle, x + (track.Width - handle.Width) / 2);
-                track.RadiusX = handle.Width / 4;
-                track.RadiusY = handle.Width / 4;
-                handle.RadiusX = handle.Width / 4;
-                handle.RadiusY = handle.Width / 4;
-                track.PreviewMouseDown += trackMouseDown;
-                handle.PreviewMouseDown += handleMouseDown;
-                Panel.SetZIndex(track, 900);
-                Panel.SetZIndex(handle, 901);
-                canv.Children.Add(track);
-                canv.Children.Add(handle);
-
-                TextBlock labelBlock = new TextBlock();
-                labelBlock.Text = label;
-                labelBlock.FontSize = 12;
-                labelBlock.FontFamily = new FontFamily("Arial");
-                labelBlock.Width = track.Width;
-                labelBlock.TextAlignment = TextAlignment.Left;
-                Canvas.SetLeft(labelBlock, x + 5);
-                Canvas.SetTop(labelBlock, y + track.Height);
-                Panel.SetZIndex(labelBlock, 900);
-                labelBlock.IsHitTestVisible = false;
-                canv.Children.Add(labelBlock);
-            }
-
-            public void setHandleX(int ind, double x)
-            {
-                double trStart = Canvas.GetLeft(track);
-                x = (x < trStart + handle.Width / 2) ? trStart + handle.Width / 2 : x;
-                x = (x > trStart + track.Width - handle.Width / 2) ? trStart + track.Width - handle.Width / 2 : x;
-                Canvas.SetLeft(handle, x = (x - handle.Width / 2));
-                currVal = ((x - trStart) / track.Width) * (endVal - startVal) + startVal;
-            }
-
-            public void activateControl(int ind)
-            {
-                sendTo(currVal);
-            }
-
-            private void trackMouseDown(object sender, MouseButtonEventArgs e)
-            {
-                setHandleX(0, e.GetPosition(canv).X);
-                slideControl.engage(this, 0);
-            }
-
-            private void handleMouseDown(object sender, MouseButtonEventArgs e)
-            {
-                slideControl.engage(this, 0);
-            }
-        }
-
-        private class SliderControl
-        {
-            private Canvas canv;
-            private Rectangle hover;
-            private Slider slider;
-            private int handleInd;
-
-            public SliderControl(Canvas c)
-            {
-                canv = c;
-                hover = new Rectangle();
-                Panel.SetZIndex(hover, 1000);
-                hover.Width = 6000;
-                hover.Height = 3000;
-                hover.Fill = new SolidColorBrush(Colors.Black);
-                hover.Opacity = 0;
-                Canvas.SetTop(hover, 3000);
-                Canvas.SetLeft(hover, -3000);
-                hover.PreviewMouseMove += onHover;
-                hover.PreviewMouseUp += disengage;
-                canv.Children.Add(hover);
-                slider = null;
-                handleInd = 0;
-            }
-
-            public void engage(Slider s, int h)
-            {
-                slider = s;
-                handleInd = h;
-                Canvas.SetTop(hover, 0);
-            }
-
-            public void disengage(object sender, MouseButtonEventArgs e)
-            {
-                Canvas.SetTop(hover, 3000);
-            }
-
-            public void onHover(object sender, MouseEventArgs e)
-            {
-                slider.setHandleX(handleInd, e.GetPosition(canv).X);
-                slider.activateControl(handleInd);
-            }
-        }
-
-        private void trUI(object sender, MouseButtonEventArgs e)
-        {
-            if (trackUI.Visibility == Visibility.Hidden)
-            {
-                trackUI.Visibility = Visibility.Visible;
-                lineUI.Visibility = Visibility.Hidden;
-                fixUI.Visibility = Visibility.Hidden;
-                utilUI.Visibility = Visibility.Hidden;
-                trDot.StrokeThickness = 0;
-                trLine.StrokeThickness = 2;
-                trFix.StrokeThickness = 2;
-                util.StrokeThickness = 2;
-                Panel.SetZIndex(trDot, 801);
-                Panel.SetZIndex(trLine, 800);
-                Panel.SetZIndex(trFix, 800);
-                Panel.SetZIndex(util, 800);
-            }
-            else {
-                trackUI.Visibility = Visibility.Hidden;
-                (sender as Rectangle).StrokeThickness = 2;
-                Panel.SetZIndex((sender as Rectangle), 800);
-            }
-        }
-
-        private void lnUI(object sender, MouseButtonEventArgs e)
-        {
-            if (lineUI.Visibility == Visibility.Hidden)
-            {
-                trackUI.Visibility = Visibility.Hidden;
-                lineUI.Visibility = Visibility.Visible;
-                fixUI.Visibility = Visibility.Hidden;
-                utilUI.Visibility = Visibility.Hidden;
-                trDot.StrokeThickness = 2;
-                trLine.StrokeThickness = 0;
-                trFix.StrokeThickness = 2;
-                util.StrokeThickness = 2;
-                Panel.SetZIndex(trDot, 800);
-                Panel.SetZIndex(trLine, 801);
-                Panel.SetZIndex(trFix, 800);
-                Panel.SetZIndex(util, 800);
-            }
-            else
-            {
-                lineUI.Visibility = Visibility.Hidden;
-                (sender as Rectangle).StrokeThickness = 2;
-                Panel.SetZIndex((sender as Rectangle), 800);
-            }
-        }
-
-        private void fxUI(object sender, MouseButtonEventArgs e)
-        {
-            if (fixUI.Visibility == Visibility.Hidden)
-            {
-                trackUI.Visibility = Visibility.Hidden;
-                lineUI.Visibility = Visibility.Hidden;
-                fixUI.Visibility = Visibility.Visible;
-                utilUI.Visibility = Visibility.Hidden;
-                trDot.StrokeThickness = 2;
-                trLine.StrokeThickness = 2;
-                trFix.StrokeThickness = 0;
-                util.StrokeThickness = 2;
-                Panel.SetZIndex(trDot, 800);
-                Panel.SetZIndex(trLine, 800);
-                Panel.SetZIndex(trFix, 801);
-                Panel.SetZIndex(util, 800);
-            }
-            else
-            {
-                fixUI.Visibility = Visibility.Hidden;
-                (sender as Rectangle).StrokeThickness = 2;
-                Panel.SetZIndex((sender as Rectangle), 800);
-            }
-        }
-
-        private void utUI(object sender, MouseButtonEventArgs e)
-        {
-            if (utilUI.Visibility == Visibility.Hidden)
-            {
-                trackUI.Visibility = Visibility.Hidden;
-                lineUI.Visibility = Visibility.Hidden;
-                fixUI.Visibility = Visibility.Hidden;
-                utilUI.Visibility = Visibility.Visible;
-                trDot.StrokeThickness = 2;
-                trLine.StrokeThickness = 2;
-                trFix.StrokeThickness = 2;
-                util.StrokeThickness = 0;
-                Panel.SetZIndex(trDot, 800);
-                Panel.SetZIndex(trLine, 800);
-                Panel.SetZIndex(trFix, 800);
-                Panel.SetZIndex(util, 801);
-            }
-            else
-            {
-                utilUI.Visibility = Visibility.Hidden;
-                (sender as Rectangle).StrokeThickness = 2;
-                Panel.SetZIndex((sender as Rectangle), 800);
-            }
-        }
-
-        private int min(int a, int b) {
-            return (a < b) ? a : b;
-        }
-
-        private int max(int a, int b){
-            return (a > b) ? a : b;
-        }
-
-        private double min(double a, double b)
-        {
-            return (a < b) ? a : b;
-        }
-
-        private double max(double a, double b)
-        {
-            return (a > b) ? a : b;
-        }
+        #endregion
     }
 }

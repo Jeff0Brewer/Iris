@@ -117,14 +117,6 @@
     <Resource Include="testbg.jpg" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="fixIcon.jpg" />
-    <Resource Include="lineIcon.jpg" />
-    <Resource Include="trackIcon.jpg" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="utilIcon.jpg" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="blankBg.jpg" />
     <Resource Include="codeBg.jpg" />
     <Resource Include="graphBg.jpg" />
@@ -141,6 +133,10 @@
     <Content Include="dashCam.mp4">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Resource Include="lineIcon.jpg" />
+    <Resource Include="utilIcon.jpg" />
+    <Resource Include="trackIcon.jpg" />
+    <Resource Include="fixIcon.jpg" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
