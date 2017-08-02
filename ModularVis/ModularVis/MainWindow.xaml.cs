@@ -43,6 +43,8 @@ namespace ModularVis
         
         //Saving
         String savPath = "C:/Users/ResearchSquad/Documents/VisSaves/Visualizations/";
+        string illegalChars = new string(System.IO.Path.GetInvalidFileNameChars()) +
+                              new string(System.IO.Path.GetInvalidPathChars());
         double smoothness = .7;
         double blur = 0;
 
@@ -91,9 +93,11 @@ namespace ModularVis
             bg.Width = canv.ActualWidth;
             bg.Height = canv.ActualHeight;
 
+
             t1 = new GazeTrack(canv, backgrounds[0]);
             t2 = new GazeLine(canv);
             t3 = new FixPoints(canv);
+            TrackControl tC = new TrackControl(new VisElement[3] { t1, t2, t3 });
 
             menuFade = new Rectangle();
             menuFade.Width = Canvas.GetLeft(util) + util.Width;
@@ -202,7 +206,7 @@ namespace ModularVis
             canv.Children.Add(menus[3]);
 
             last = 12.5;
-            swc = new SwatchControl(new Action<Brush>[4] { t1.setFillColor, t1.blur.setFillColor, t2.setFillColor, t3.setFillColor }, canv);
+            swc = new SwatchControl(new Action<Brush>[3] { t1.setFillColor, t2.setFillColor, t3.setFillColor }, canv);
             Swatch s1 = new Swatch(Colors.Black, 12.5, last, swc, menus[3]);
             Swatch s2 = new Swatch(Colors.LightGray, 37.5, last, swc, menus[3]);
             Swatch s3 = new Swatch(Colors.Red, 62.5, last, swc, menus[3]);
@@ -241,11 +245,15 @@ namespace ModularVis
 
         #endregion
         
-        #region polished vis elements
+        #region Vis elements
 
         public abstract class VisElement
         {
             public abstract void setColor(int id, Brush b);
+
+            public abstract void setFillColor(Brush b);
+
+            public abstract void linkToControl(TrackControl tc);
 
             protected Brush brushFromHex(String hex)
             {
@@ -276,6 +284,7 @@ namespace ModularVis
         private class FixPoints : VisElement
         {
             private Canvas canv;
+            private TrackControl tC;
             private Ellipse[] dots;
             private Point[] points;
             private Point potentialFix;
@@ -308,6 +317,7 @@ namespace ModularVis
             public FixPoints(Canvas c)
             {
                 canv = c;
+                tC = null;
                 savLen = 3;
                 visible = false;
                 activeLineVisible = false;
@@ -384,10 +394,14 @@ namespace ModularVis
                 overlay.PreviewMouseUp += overlay_unclicked;
                 canv.Children.Add(overlay);
                 colorActive = false;
-                cBr = null;
+                cBr = new SolidColorBrush(Colors.Black);
 
                 if (len > 0 && !activeLineVisible)
                     lines[len - 1].Opacity = 0;
+            }
+
+            public override void linkToControl(TrackControl tc) {
+                tC = tc;
             }
 
             public String getParams()
@@ -403,6 +417,7 @@ namespace ModularVis
                      + "bB:" + dbr.ToString() + " "
                      + "lW:" + lineWidth.ToString() + " "
                      + "lO:" + lineOpacity.ToString() + " "
+                     + "aL:" + activeLineVisible.ToString() + " "
                      + "lB:" + lbr.ToString() + " ";
                 return par;
             }
@@ -448,6 +463,10 @@ namespace ModularVis
                     currInd = par.IndexOf(key, currInd) + key.Length;
                     endInd = par.IndexOf(" ", currInd);
                     setLineOpacity(Convert.ToDouble(par.Substring(currInd, endInd - currInd + 1)));
+                    key = "aL:";
+                    currInd = par.IndexOf(key, currInd) + key.Length;
+                    endInd = par.IndexOf(" ", currInd);
+                    setActiveLineVisibility(Convert.ToBoolean(par.Substring(currInd, endInd - currInd + 1)));
                     key = "lB:";
                     currInd = par.IndexOf(key, currInd) + key.Length;
                     endInd = par.IndexOf(" ", currInd);
@@ -459,23 +478,26 @@ namespace ModularVis
 
             private void line_color(object sender, MouseButtonEventArgs e)
             {
-                lbr = cBr;
+                if (cBr != null)
+                    lbr = cBr;
                 for (int i = 0; i < len; i++)
                 {
                     lines[i].Stroke = lbr;
                 }
+                tC.clearColor();
             }
 
             private void dot_color(object sender, MouseButtonEventArgs e)
             {
-                dbr = cBr;
-                for (int i = 0; i < len; i++)
-                {
+                if(cBr != null)
+                    dbr = cBr;
+                for (int i = 0; i < len; i++){
                     dots[i].Fill = dbr;
                 }
+                tC.clearColor();
             }
 
-            public void setFillColor(Brush b)
+            public override void setFillColor(Brush b)
             {
                 cBr = b;
             }
@@ -553,8 +575,8 @@ namespace ModularVis
             private void overlay_dragged(object sender, MouseEventArgs e)
             {
                 Point mouse = e.GetPosition(canv);
-                if (dotClicked && setLen && distance(mouse, points[len - 1]) > startRadius + 30)
-                {
+                if (dotClicked && setLen && ((len == 1 && distance(mouse, points[len - 1]) > startRadius) ||
+                                              len > 1 && distance(mouse, points[len - 1]) > 25)){
                     setLength(e.GetPosition(canv));
                 }
                 else if (dotClicked && !setLen)
@@ -574,7 +596,7 @@ namespace ModularVis
                         setEndRadius(endRadius);
                     }
                 }
-                else if (!dotClicked && clickedInd < len - 1)
+                else if (!dotClicked)
                 {
                     Point root = new Point(lines[clickedInd].X1, lines[clickedInd].Y1);
                     Point a = mouse;
@@ -611,10 +633,7 @@ namespace ModularVis
                     potentialFix.Y = potentialFix.Y * ((currCount - 1) / currCount) + prev.Y * (1 / currCount);
 
 
-                    lines[len - 1].X2 = points[0].X;
-                    lines[len - 1].Y2 = points[0].Y;
-                    lines[len - 1].X1 = prev.X;
-                    lines[len - 1].Y1 = prev.Y;
+                    refreshActiveLine();
 
                     if (currCount > fixTime)
                     {
@@ -642,6 +661,24 @@ namespace ModularVis
                         block.X = potentialFix.X;
                         block.Y = potentialFix.Y;
                     }
+                }
+            }
+
+            public void refreshActiveLine() {
+                double dr = tC.getDotRad();
+                if (len > 0 && activeLineVisible){
+                    lines[len - 1].X2 = points[0].X;
+                    lines[len - 1].Y2 = points[0].Y;
+                    double dst = distance(prev, points[0]);
+                    double rX = (prev.X - points[0].X) / dst;
+                    double rY = (prev.Y - points[0].Y) / dst;
+                    lines[len - 1].X1 = prev.X - dr * rX;
+                    lines[len - 1].Y1 = prev.Y - dr * rY;
+
+                    if (dr > 0)
+                        lines[len - 1].StrokeStartLineCap = PenLineCap.Flat;
+                    else
+                        lines[len - 1].StrokeStartLineCap = PenLineCap.Round;
                 }
             }
 
@@ -917,12 +954,26 @@ namespace ModularVis
             public bool togActiveLine() {
                 if (len > 0){
                     activeLineVisible = !activeLineVisible;
-                    if (activeLineVisible)
+                    if (activeLineVisible) {
                         lines[len - 1].Opacity = lineOpacity;
+                        refreshActiveLine();
+                    }
                     else
                         lines[len - 1].Opacity = 0;
                 }
                 return activeLineVisible;
+            }
+
+            public void setActiveLineVisibility(bool v) {
+                if (len > 0){
+                    activeLineVisible = v;
+                    if (activeLineVisible){
+                        lines[len - 1].Opacity = lineOpacity;
+                        refreshActiveLine();
+                    }
+                    else
+                        lines[len - 1].Opacity = 0;
+                }
             }
 
             public bool getActiveLine() {
@@ -938,6 +989,7 @@ namespace ModularVis
         private class GazeLine : VisElement
         {
             private Canvas canv;
+            private TrackControl tC;
             private Line[] trail;
             private Point[] echo;
             private Brush br;
@@ -957,7 +1009,8 @@ namespace ModularVis
             public GazeLine(Canvas c)
             {
                 canv = c;
-                savLen = 15;
+                tC = null;
+                savLen = 25;
                 br = new SolidColorBrush(System.Windows.Media.Colors.Black);
                 len = 0;
                 startWidth = 10;
@@ -1006,7 +1059,12 @@ namespace ModularVis
                 overlay.PreviewMouseUp += trail_unclicked;
                 canv.Children.Add(overlay);
                 colorActive = false;
-                cBr = null;
+                cBr = new SolidColorBrush(Colors.Black);
+            }
+            
+            public override void linkToControl(TrackControl tc)
+            {
+                tC = tc;
             }
 
             public String getParams()
@@ -1056,18 +1114,20 @@ namespace ModularVis
                 }
             }
 
-            public void setFillColor(Brush b)
+            public override void setFillColor(Brush b)
             {
                 cBr = b;
             }
 
             private void trail_color(object sender, MouseButtonEventArgs e)
             {
-                br = cBr;
+                if (cBr != null)
+                    br = cBr;
                 for (int i = 0; i < len; i++)
                 {
                     trail[i].Stroke = br;
                 }
+                tC.clearColor();
             }
 
             public bool togVis()
@@ -1177,6 +1237,15 @@ namespace ModularVis
                     trail[i].X2 = echo[i + 1].X;
                     trail[i].Y2 = echo[i + 1].Y;
                 }
+            }
+
+            private double findAngle(Line l1, Line l2) {
+                Point a = new Point(l1.X1 - l1.X2, l1.Y1 - l1.Y2),
+                      b = new Point(l2.X2 - l2.X1, l2.Y2 - l2.Y1);
+                double da = Math.Sqrt(Math.Pow(a.X, 2) + Math.Pow(a.Y, 2)),
+                       db = Math.Sqrt(Math.Pow(b.X, 2) + Math.Pow(b.Y, 2));
+
+                return Math.Acos((a.X*b.X + a.Y*b.Y)/(da*db));
             }
 
             public override void setColor(int id, Brush b)
@@ -1326,6 +1395,7 @@ namespace ModularVis
         private class GazeTrack : VisElement
         {
             private Canvas canv;
+            private TrackControl tC;
             private Ellipse body;
             private Point prev;
             private Brush br;
@@ -1355,6 +1425,7 @@ namespace ModularVis
             public GazeTrack(Canvas c, string imgpath)
             {
                 canv = c;
+                tC = null;
                 smooth = .7;
                 outerRadius = 0;
                 innerRadius = 0;
@@ -1392,13 +1463,19 @@ namespace ModularVis
                 savLen = 0;
                 visible = false;
                 colorActive = false;
-                cBr = null;
+                cBr = new SolidColorBrush(Colors.Black);
                 //EnvColoring
                 env = false;
                 img = imgpath;
-                zoom = .95;
+                zoom = .9;
                 src = new BitmapImage();
                 setEnvImg(img);
+            }
+
+            public override void linkToControl(TrackControl tc)
+            {
+                tC = tc;
+                blur.linkToControl(tc);
             }
 
             public String getParams()
@@ -1464,9 +1541,10 @@ namespace ModularVis
                 }
             }
 
-            public void setFillColor(Brush b)
+            public override void setFillColor(Brush b)
             {
                 cBr = b;
+                blur.setFillColor(b);
             }
 
             private void fillColor(object sender, MouseButtonEventArgs e)
@@ -1478,6 +1556,7 @@ namespace ModularVis
                     env = false;
                     body.Opacity = opacity;
                 }
+                tC.clearColor();
             }
 
             private void loadStroke(Brush b) {
@@ -1598,18 +1677,24 @@ namespace ModularVis
                 blur.next(prev);
             }
 
-            private void refreshEnv()
-            {
-                try
-                {
-                    ImageBrush temp = new ImageBrush(new CroppedBitmap(src, new Int32Rect((int)((prev.X - outerRadius * zoom) * ratioX + offsetX),
-                                                                                          (int)((prev.Y - outerRadius * zoom) * ratioY + offsetY),
-                                                                                          (int)((2 * outerRadius * zoom) * ratioX),
-                                                                                          (int)((2 * outerRadius * zoom) * ratioY))));
-                    temp.Stretch = Stretch.UniformToFill;
-                    body.Stroke = temp;
+            private void refreshEnv(){
+                if (outerRadius > 0){
+                    double inX = prev.X,
+                           inY = prev.Y;
+                    inX = max(inX, outerRadius * zoom);
+                    inX = min(inX, canv.ActualWidth - outerRadius * zoom);
+                    inY = max(inY, outerRadius * zoom);
+                    inY = min(inY, canv.ActualHeight - outerRadius * zoom);
+                    try{
+                        ImageBrush temp = new ImageBrush(new CroppedBitmap(src, new Int32Rect((int)((inX - outerRadius * zoom) * ratioX + offsetX),
+                                                                                                (int)((inY - outerRadius * zoom) * ratioY + offsetY),
+                                                                                                (int)((2 * outerRadius * zoom) * ratioX),
+                                                                                                (int)((2 * outerRadius * zoom) * ratioY))));
+                        temp.Stretch = Stretch.UniformToFill;
+                        body.Stroke = temp;
+                    }
+                    catch { }
                 }
-                catch { }
             }
 
             public override void setColor(int id, Brush b)
@@ -1718,6 +1803,7 @@ namespace ModularVis
             public void setInnerRadius(double ir)
             {
                 innerRadius = ir;
+                tC.setDotRad(innerRadius);
                 body.StrokeThickness = outerRadius - innerRadius;
             }
 
@@ -1736,6 +1822,7 @@ namespace ModularVis
         private class TrackBlur
         {
             private Canvas canv;
+            private TrackControl tC;
             private Ellipse[] lens;
             private Point[] echo;
             private Brush br;
@@ -1748,6 +1835,7 @@ namespace ModularVis
             public TrackBlur(Canvas c, double rad)
             {
                 canv = c;
+                tC = null;
                 br = new SolidColorBrush(System.Windows.Media.Colors.Black);
                 radius = rad;
                 stretch = 3;
@@ -1779,6 +1867,11 @@ namespace ModularVis
                 cBr = null;
             }
 
+            public void linkToControl(TrackControl tc)
+            {
+                tC = tc;
+            }
+
             public String getParams()
             {
                 String par = "";
@@ -1791,11 +1884,13 @@ namespace ModularVis
 
             private void lens_unclicked(object sender, MouseButtonEventArgs e)
             {
-                br = cBr;
+                if (cBr != null)
+                    br = cBr;
                 for (int i = 0; i < len; i++)
                 {
                     lens[i].Stroke = br;
                 }
+                tC.clearColor();
             }
 
             public void setFillColor(Brush b)
@@ -2077,8 +2172,7 @@ namespace ModularVis
                 canv.Children.Add(overlay);
             }
 
-            public void startColoring(Brush br)
-            {
+            public void startColoring(Brush br){
                 curr = br;
                 cursor.Fill = br;
                 Canvas.SetTop(overlay, 0);
@@ -2096,6 +2190,13 @@ namespace ModularVis
                 {
                     elementFunc[i](null);
                 }
+            }
+
+            public void addElementFunc(Action<Brush> eF) {
+                Action<Brush>[] temp = new Action<Brush>[elementFunc.Length + 1];
+                Array.Copy(elementFunc,temp,elementFunc.Length);
+                temp[temp.Length - 1] = eF;
+                elementFunc = temp;
             }
 
             private void hover(object sender, MouseEventArgs e)
@@ -2117,6 +2218,7 @@ namespace ModularVis
             private SwatchControl sc;
             private Brush br;
             private Rectangle body;
+            private Brush currColor;
             public const double Height = 20;
             
             public Swatch(Color color, double x, double y, SwatchControl swcont, Canvas c)
@@ -2124,6 +2226,9 @@ namespace ModularVis
                 canv = c;
                 sc = swcont;
                 br = new SolidColorBrush(color);
+                currColor = null;
+
+                sc.addElementFunc(this.syncColor);
 
                 body = new Rectangle();
                 body.Width = Height;
@@ -2133,13 +2238,23 @@ namespace ModularVis
                 body.Fill = br;
                 Canvas.SetLeft(body, x);
                 Canvas.SetTop(body, y);
-                body.PreviewMouseDown += body_clicked;
+                body.PreviewMouseDown += body_downclicked;
+                body.PreviewMouseUp += body_upclicked;
                 canv.Children.Add(body);
             }
 
-            private void body_clicked(object sender, MouseButtonEventArgs e)
+            public void syncColor(Brush cC) {
+                currColor = cC;
+            }
+
+            private void body_downclicked(object sender, MouseButtonEventArgs e) {
+                currColor = null;
+            }
+
+            private void body_upclicked(object sender, MouseButtonEventArgs e)
             {
-                sc.startColoring(br);
+                if (br != currColor)
+                    sc.startColoring(br);
             }
         }
 
@@ -2394,6 +2509,7 @@ namespace ModularVis
                 textBox.Text = "Vis name";
                 textBox.FontSize = 13;
                 textBox.PreviewMouseDown += textClick;
+                textBox.PreviewKeyDown += textEnter;
                 Canvas.SetTop(textBox, y);
                 Canvas.SetLeft(textBox, x);
                 canv.Children.Add(textBox);
@@ -2504,6 +2620,8 @@ namespace ModularVis
                     }
                     else
                     {
+                        delta = next.y - nextY;
+                        next.setY(nextY);
                         activate();
                         next.activate();
                         timer.Stop();
@@ -2517,6 +2635,8 @@ namespace ModularVis
                     }
                     else
                     {
+                        delta = y - nextY;
+                        setY(nextY);
                         activate();
                         timer.Stop();
                     }
@@ -2605,6 +2725,11 @@ namespace ModularVis
                 }
             }
 
+            private void textEnter(object sender, KeyEventArgs e) {
+                if(e.Key.Equals(Key.Space))
+                    e.Handled = true;
+            }
+
             public double setY(double iy)
             {
                 y = iy;
@@ -2654,6 +2779,7 @@ namespace ModularVis
             private double totalTime;
             private double maxBar;
             private bool recordedFull;
+            private bool freeze;
             public const double Height = 20;
 
             public RecordInterface(double ix, double iy, String p, Action<bool> start, Action<bool, String> stop, Action pstart, Action pstop, Canvas c)
@@ -2674,6 +2800,7 @@ namespace ModularVis
                 totalTime = 0;
                 maxBar = 0;
                 recordedFull = false;
+                freeze = false;
 
                 record = new Button();
                 record.Width = 20;
@@ -2862,7 +2989,7 @@ namespace ModularVis
 
             private void timer_tick(object sender, EventArgs e)
             {
-                if (recording && vid == null)
+                if (recording && vid == null && !freeze)
                 {
                     dispRecording();
                 }
@@ -2949,6 +3076,10 @@ namespace ModularVis
                 vidID = -1;
             }
 
+            public void setFreeze(bool frz) {
+                freeze = frz;
+            }
+
             private double max(double a, double b)
             {
                 return (a > b) ? a : b;
@@ -2967,7 +3098,38 @@ namespace ModularVis
 
         #endregion
 
-        #region utility functions
+        #region utility
+        
+        public class TrackControl
+        {
+            private VisElement[] elements;
+            private double dotRad;
+
+            public TrackControl(VisElement[] e)
+            {
+                elements = e;
+                dotRad = 0;
+                foreach (VisElement element in elements)
+                {
+                    element.linkToControl(this);
+                }
+            }
+
+            public void clearColor()
+            {
+                for (int i = 0; i < elements.Length; i++)
+                    elements[i].setFillColor(null);
+            }
+
+            public double getDotRad() {
+                return dotRad;
+            }
+
+            public void setDotRad(double dr) {
+                dotRad = dr;
+                (elements[2] as FixPoints).refreshActiveLine();
+            }
+        }
 
         #region recording
         public void recordGaze(bool media)
@@ -3027,8 +3189,10 @@ namespace ModularVis
         #endregion
 
         #region save/load
-        public String saveCurr(String name)
-        {
+        public String saveCurr(String name){
+            foreach (char c in illegalChars){
+                name = name.Replace(c.ToString(), "$");
+            }
             int savNum = 0;
             String currPath = savPath + name + ".txt";
             while (File.Exists(currPath))
@@ -3187,10 +3351,10 @@ namespace ModularVis
             {
                 freeze = !freeze;
                 picFreezeSync(freeze);
-                if (vid != null && vid.IsLoaded)
-                {
+                if (vid != null && vid.IsLoaded){
                     vidFreezeSync(freeze);
                 }
+                ri.setFreeze(freeze);
             }
             else if (e.Key.Equals(Key.Left) || e.Key.Equals(Key.Right))
             {
