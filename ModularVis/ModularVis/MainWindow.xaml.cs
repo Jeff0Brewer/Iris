@@ -35,6 +35,7 @@ namespace ModularVis
         Rectangle[] menuTabs;
         Canvas[] menus;
         Rectangle menuFade;
+        Slider su1, su2;
 
         //Vis
         GazeTrack t1;
@@ -186,7 +187,7 @@ namespace ModularVis
             Toggle tf1 = new Toggle("visible", 10, last, t3.togVis, t3.getVis, menus[2]);
             Toggle tf2 = new Toggle("active line", 10, last += Toggle.Height + toggleSpacing, t3.togActiveLine, t3.getActiveLine, menus[2]);
             SliderControl sc1 = new SliderControl(menus[2]);
-            Slider sf1 = new Slider("fixation time", 10, last += Toggle.Height + sliderSpacing, 1, 100, t3.setFixTime, sc1, menus[2]);
+            Slider sf1 = new Slider("fixation time", 10, last += Toggle.Height + sliderSpacing, 1, 100, t3.setFixTime, t3.getFixTime, sc1, menus[2]);
             last += Slider.Height;
 
             menus[2].Height = last + bottomSpacing;
@@ -226,8 +227,8 @@ namespace ModularVis
             Swatch s16 = new Swatch(Colors.HotPink, 187.5, last, swc, menus[3]);
             last += Swatch.Height + 15;
             SliderControl sc2 = new SliderControl(menus[3]);
-            Slider su1 = new Slider("smoothness", 10, last, 0, .99, setSmoothness, sc2, menus[3]);
-            Slider su2 = new Slider("background blur", 10, last += Slider.Height + sliderSpacing, 0, 10, setBgBlur, sc2, menus[3]);
+            su1 = new Slider("smoothness", 10, last, 0, .99, setSmoothness, getSmoothness, sc2, menus[3]);
+            su2 = new Slider("background blur", 10, last += Slider.Height + sliderSpacing, 0, 10, setBgBlur, getBgBlur, sc2, menus[3]);
 
             ri = new RecordInterface(10, last += Slider.Height + recordSpacing, recordPath, recordGaze, stopRecord, startPlayback, stopPlayback, menus[3]);
 
@@ -890,6 +891,10 @@ namespace ModularVis
                 fixTime = (int)t;
             }
 
+            public double getFixTime() {
+                return fixTime;
+            }
+
             public void setStartRadius(double sr)
             {
                 startRadius = sr;
@@ -1025,28 +1030,6 @@ namespace ModularVis
                 double widthInc = (startWidth - endWidth) / len;
                 double opacity = startOpacity;
                 double opacityInc = (startOpacity - endOpacity) / len;
-                for (int i = 0; i < len; i++)
-                {
-                    echo[i] = new Point(0, 0);
-                    trail[i] = new Line();
-                    trail[i].X1 = 0;
-                    trail[i].X2 = 0;
-                    trail[i].Y1 = 0;
-                    trail[i].Y2 = 0;
-                    trail[i].Stroke = br;
-                    trail[i].StrokeThickness = width;
-                    trail[i].StrokeEndLineCap = PenLineCap.Round;
-                    trail[i].Name = "l" + i.ToString();
-                    trail[i].PreviewMouseRightButtonDown += startLengthAdjust;
-                    trail[i].PreviewMouseLeftButtonDown += startWidthAdjust;
-                    trail[i].MouseWheel += opacityAdjust;
-                    trail[i].PreviewMouseUp += trail_color;
-                    width -= widthInc;
-                    trail[i].Opacity = opacity;
-                    opacity -= opacityInc;
-                    Panel.SetZIndex(trail[i], 7);
-                    canv.Children.Add(trail[i]);
-                }
                 //UI
                 overlay = new Rectangle();
                 overlay.Width = 3000;
@@ -1624,7 +1607,7 @@ namespace ModularVis
             {
                 setLen = false;
                 double dist = Math.Sqrt(Math.Pow(e.GetPosition(canv).X - (Canvas.GetLeft(body) + outerRadius), 2) + Math.Pow(e.GetPosition(canv).Y - (Canvas.GetTop(body) + outerRadius), 2));
-                setInner = dist < innerRadius + (outerRadius - innerRadius) / 2;
+                setInner = dist < innerRadius + (outerRadius - innerRadius) / 4;
                 Canvas.SetTop(overlay, 0);
             }
 
@@ -2309,16 +2292,18 @@ namespace ModularVis
             private Rectangle handle;
             private SliderControl slideControl;
             private Action<double> sendTo;
+            private Func<double> checkVal;
             private double startVal, endVal;
             private TextBlock labelBlock;
             public double currVal;
             public const double Height = 32;
 
-            public Slider(String label, double x, double y, double sV, double eV, Action<double> send, SliderControl sc, Canvas c)
+            public Slider(String label, double x, double y, double sV, double eV, Action<double> send, Func<double> check, SliderControl sc, Canvas c)
             {
                 canv = c;
                 slideControl = sc;
                 sendTo = send;
+                checkVal = check;
                 startVal = sV;
                 endVal = eV;
                 track = new Rectangle();
@@ -2339,6 +2324,7 @@ namespace ModularVis
                 handle.RadiusY = handle.Width / 4;
                 track.PreviewMouseDown += trackMouseDown;
                 handle.PreviewMouseDown += handleMouseDown;
+                handle.IsVisibleChanged += checkState;
                 Panel.SetZIndex(track, 900);
                 Panel.SetZIndex(handle, 901);
                 canv.Children.Add(track);
@@ -2355,6 +2341,19 @@ namespace ModularVis
                 Panel.SetZIndex(labelBlock, 900);
                 labelBlock.IsHitTestVisible = false;
                 canv.Children.Add(labelBlock);
+            }
+
+            private void checkState(object sender, DependencyPropertyChangedEventArgs e) {
+                double valLen = endVal - startVal;
+                double inVal = checkVal() - startVal;
+                setHandleX(0, (inVal / valLen) * track.Width);
+            }
+
+            public void checkState()
+            {
+                double valLen = endVal - startVal;
+                double inVal = checkVal() - startVal;
+                setHandleX(0, (inVal / valLen) * track.Width);
             }
 
             public void setHandleX(int ind, double x)
@@ -3057,6 +3056,7 @@ namespace ModularVis
                 else
                     currInd = (currInd + 1) % (recorded.Length - 1);
                 currInd = min(currInd, recorded.Length - 2);
+                currInd = max(currInd, 0);
                 String curr = recorded[currInd];
                 return new Point(Convert.ToDouble(curr.Substring(0, curr.IndexOf(":"))),
                                  Convert.ToDouble(curr.Substring(curr.IndexOf(":") + 1, curr.IndexOf(" ") - curr.IndexOf(":"))));
@@ -3093,6 +3093,10 @@ namespace ModularVis
             private int min(int a, int b)
             {
                 return (a < b) ? a : b;
+            }
+
+            private int max(int a, int b) {
+                return (a > b) ? a : b;
             }
         }
 
@@ -3152,11 +3156,7 @@ namespace ModularVis
             {
                 rw.Close();
                 rw = new StreamWriter(recordPath);
-                String[] tFile = File.ReadAllLines(tempRecordPath1);
-                for (int i = 0; i < tFile.Length; i++)
-                {
-                    rw.WriteLine(tFile[i]);
-                }
+                String[] tFile;
                 if (File.Exists(tempRecordPath2))
                 {
                     tFile = File.ReadAllLines(tempRecordPath2);
@@ -3164,6 +3164,11 @@ namespace ModularVis
                     {
                         rw.WriteLine(tFile[i]);
                     }
+                }
+                tFile = File.ReadAllLines(tempRecordPath1);
+                for (int i = 0; i < tFile.Length; i++)
+                {
+                    rw.WriteLine(tFile[i]);
                 }
                 rw.WriteLine(footer);
                 File.Delete(tempRecordPath1);
@@ -3190,6 +3195,9 @@ namespace ModularVis
 
         #region save/load
         public String saveCurr(String name){
+            if (name.Length > 50) {
+                name = name.Substring(0, 50);
+            }
             foreach (char c in illegalChars){
                 name = name.Replace(c.ToString(), "$");
             }
@@ -3222,6 +3230,8 @@ namespace ModularVis
                 t1.loadFromParams(loaded[1]);
                 t2.loadFromParams(loaded[2]);
                 t3.loadFromParams(loaded[3]);
+                su1.checkState();
+                su2.checkState();
             }
         }
 
@@ -3310,6 +3320,14 @@ namespace ModularVis
             t1.setSmooth(s);
             t2.setSmooth(s);
             t3.setSmooth(s);
+        }
+
+        public double getBgBlur() {
+            return blur;
+        }
+
+        public double getSmoothness() {
+            return smoothness;
         }
         #endregion
 
