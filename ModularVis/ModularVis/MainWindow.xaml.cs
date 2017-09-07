@@ -188,7 +188,7 @@ namespace ModularVis
             Toggle tf1 = new Toggle("visible", 10, last, t3.togVis, t3.getVis, menus[2]);
             Toggle tf2 = new Toggle("active line", 10, last += Toggle.Height + toggleSpacing, t3.togActiveLine, t3.getActiveLine, menus[2]);
             SliderControl sc1 = new SliderControl(menus[2]);
-            Slider sf1 = new Slider("fixation time", 10, last += Toggle.Height + sliderSpacing, 1, 50, t3.setFixTime, t3.getFixTime, sc1, menus[2]);
+            Slider sf1 = new Slider("fixation time", 10, last += Toggle.Height + sliderSpacing, 1, 200, t3.setFixTime, t3.getFixTime, sc1, menus[2]);
             last += Slider.Height;
 
             menus[2].Height = last + bottomSpacing;
@@ -1020,7 +1020,7 @@ namespace ModularVis
                 startWidth = 10;
                 endWidth = 1;
                 startOpacity = 1;
-                endOpacity = 0;
+                endOpacity = 1;
                 smooth = .7;
                 trail = new Line[len];
                 echo = new Point[len + 1];
@@ -3427,7 +3427,7 @@ namespace ModularVis
                     vid.UnloadedBehavior = System.Windows.Controls.MediaState.Manual;
                     vid.Source = new Uri(file.Substring(1), UriKind.Relative);
                     vid.Width = canv.ActualWidth;
-                    Canvas.SetTop(vid, 100);
+                    Canvas.SetTop(vid, (canv.ActualHeight - (9.0/16.0)*canv.ActualWidth)/2);
                     Panel.SetZIndex(vid, 0);
                     canv.Children.Add(vid);
                     vid.Play();
