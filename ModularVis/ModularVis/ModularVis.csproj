@@ -120,8 +120,6 @@
     <Resource Include="blankBg.jpg" />
     <Resource Include="codeBg.jpg" />
     <Resource Include="graphBg.jpg" />
-    <Resource Include="mapBg.jpg" />
-    <Resource Include="xrayBg.JPG" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="blackBg.jpg">
@@ -130,9 +128,16 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="bears.mp4" />
+    <Resource Include="controls.jpg" />
     <Content Include="dashCam.mp4">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="fishTank.mp4" />
+    <Content Include="gymastics.mp4" />
+    <Resource Include="txtBg.jpg" />
+    <Resource Include="xrayBg.JPG" />
+    <Resource Include="mapBg.jpg" />
+    <Resource Include="simMapBg.jpg" />
     <Resource Include="lineIcon.jpg" />
     <Resource Include="utilIcon.jpg" />
     <Resource Include="trackIcon.jpg" />

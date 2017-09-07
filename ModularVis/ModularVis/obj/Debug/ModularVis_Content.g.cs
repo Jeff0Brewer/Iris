@@ -10,5 +10,7 @@
 
 [assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("bears.mp4")]
 [assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("dashcam.mp4")]
+[assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("fishtank.mp4")]
+[assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("gymastics.mp4")]
 
 
