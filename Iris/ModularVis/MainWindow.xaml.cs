@@ -43,7 +43,7 @@ namespace ModularVis
         FixPoints t3;
         
         //Saving
-        String savPath = "C:/Users/ResearchSquad/Documents/VisSaves/Visualizations/";
+        String savPath = "VisSaves/Visualizations/";
         string illegalChars = new string(System.IO.Path.GetInvalidFileNameChars()) +
                               new string(System.IO.Path.GetInvalidPathChars());
         double smoothness = .7;
@@ -51,9 +51,9 @@ namespace ModularVis
 
         //Recording
         RecordInterface ri;
-        String recordPath = "C:/Users/ResearchSquad/Documents/VisSaves/Recordings/rd.txt";
-        String tempRecordPath1 = "C:/Users/ResearchSquad/Documents/VisSaves/Recordings/trd1.txt";
-        String tempRecordPath2 = "C:/Users/ResearchSquad/Documents/VisSaves/Recordings/trd2.txt";
+        String recordPath = "VisSaves/Recordings/rd.txt";
+        String tempRecordPath1 = "VisSaves/Recordings/trd1.txt";
+        String tempRecordPath2 = "VisSaves/Recordings/trd2.txt";
         TextWriter rw;
         bool recording = false;
         bool playing = false;
