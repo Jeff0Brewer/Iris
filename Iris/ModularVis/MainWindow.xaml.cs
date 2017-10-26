@@ -3277,11 +3277,14 @@ namespace ModularVis
             TextBar prev = null;
             foreach (String file in files)
             {
-                TextBar tb = new TextBar(ix, iy, saveCurr, loadVis, deleteSave, c, file.Substring(savPath.Length, file.Length - savPath.Length - 4));
-                if (prev != null)
-                    prev.next = tb;
-                prev = tb;
-                iy += TextBar.Height + 10;
+                if (!(file.Contains("\\ignore.txt") || file.Contains("/ignore.txt")))
+                {
+                    TextBar tb = new TextBar(ix, iy, saveCurr, loadVis, deleteSave, c, file.Substring(savPath.Length, file.Length - savPath.Length - 4));
+                    if (prev != null)
+                        prev.next = tb;
+                    prev = tb;
+                    iy += TextBar.Height + 10;
+                }
             }
             if (prev != null)
             {
@@ -3293,7 +3296,7 @@ namespace ModularVis
                 prev = new TextBar(ix, iy, saveCurr, loadVis, deleteSave, c);
                 prev.activate();
             }
-            return (files.Length + 1) * (TextBar.Height + 10) - 10;
+            return (files.Length) * (TextBar.Height + 10) - 10;
         }
 
         public void loadOddParams(String par)
