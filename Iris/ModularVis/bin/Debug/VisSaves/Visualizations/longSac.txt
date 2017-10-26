@@ -1,4 +1,0 @@
-s:0.7 b:0 
---t1: oR:0 iR:0 O:1 ENV:False eZ:0.9 bB:#FF000000 sL:0 ssO:0.2 seO:0 sB:#FF000000 
---t2: l:0 sW:10 eW:1 sO:1 eO:0 b:#FF000000 
---t3: l:129 ft:10 sO:0.56 eO:0.4 sR:60.0416755721666 eR:0 bB:#FFFFFFFF lW:1.2997277863376 lO:0.34 aL:False lB:#FFFFFF00 
