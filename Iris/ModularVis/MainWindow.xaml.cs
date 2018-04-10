@@ -186,7 +186,8 @@ namespace ModularVis
 
             last = 10;
             Toggle tf1 = new Toggle("visible", 10, last, t3.togVis, t3.getVis, menus[2]);
-            Toggle tf2 = new Toggle("active line", 10, last += Toggle.Height + toggleSpacing, t3.togActiveLine, t3.getActiveLine, menus[2]);
+            Toggle tf2 = new Toggle("line visible", 10, last += Toggle.Height + toggleSpacing, t3.togLine, t3.getLineVis, menus[2]);
+            Toggle tf3 = new Toggle("active line", 10, last += Toggle.Height + toggleSpacing, t3.togActiveLine, t3.getActiveLine, menus[2]);
             SliderControl sc1 = new SliderControl(menus[2]);
             Slider sf1 = new Slider("fixation time", 10, last += Toggle.Height + sliderSpacing, 1, 200, t3.setFixTime, t3.getFixTime, sc1, menus[2]);
             last += Slider.Height;
@@ -311,6 +312,7 @@ namespace ModularVis
             private int clickedInd;
             private int savLen;
             private bool visible;
+            private bool lineVisible;
             private bool activeLineVisible;
             public bool colorActive;
             public Brush cBr;
@@ -322,6 +324,7 @@ namespace ModularVis
                 tC = null;
                 savLen = 3;
                 visible = false;
+                lineVisible = true;
                 activeLineVisible = false;
                 len = 0;
                 startRadius = 35;
@@ -419,6 +422,7 @@ namespace ModularVis
                      + "bB:" + dbr.ToString() + " "
                      + "lW:" + lineWidth.ToString() + " "
                      + "lO:" + lineOpacity.ToString() + " "
+                     + "lV:" + lineVisible.ToString() + " "
                      + "aL:" + activeLineVisible.ToString() + " "
                      + "lB:" + lbr.ToString() + " ";
                 return par;
@@ -465,6 +469,10 @@ namespace ModularVis
                     currInd = par.IndexOf(key, currInd) + key.Length;
                     endInd = par.IndexOf(" ", currInd);
                     setLineOpacity(Convert.ToDouble(par.Substring(currInd, endInd - currInd + 1)));
+                    key = "lV:";
+                    currInd = par.IndexOf(key, currInd) + key.Length;
+                    endInd = par.IndexOf(" ", currInd);
+                    setLineVis(Convert.ToBoolean(par.Substring(currInd, endInd - currInd + 1)));
                     key = "aL:";
                     currInd = par.IndexOf(key, currInd) + key.Length;
                     endInd = par.IndexOf(" ", currInd);
@@ -521,6 +529,39 @@ namespace ModularVis
                 return visible;
             }
 
+            public bool togLine() {
+                if (lineVisible) {
+                    for (int i = 0; i < len - 1; i++) {
+                        lines[i].Visibility = Visibility.Hidden;
+                    }
+                }
+                else {
+                    for (int i = 0; i < len - 1; i++) {
+                        lines[i].Visibility = Visibility.Visible;
+                    }
+                }
+                lineVisible = !lineVisible;
+                return lineVisible;
+            }
+
+            public bool getLineVis() {
+                return lineVisible;
+            }
+
+            private void setLineVis(bool vis) {
+                lineVisible = vis;
+                if (!lineVisible) {
+                    for (int i = 0; i < len - 1; i++) {
+                        lines[i].Visibility = Visibility.Hidden;
+                    }
+                }
+                else {
+                    for (int i = 0; i < len - 1; i++) {
+                        lines[i].Visibility = Visibility.Visible;
+                    }
+                }
+            }
+
             private void line_clicked(object sender, MouseButtonEventArgs e)
             {
                 dotClicked = false;
@@ -532,7 +573,7 @@ namespace ModularVis
             {
                 lineOpacity += (double)e.Delta / 3000;
                 lineOpacity = (lineOpacity > 1) ? 1 : lineOpacity;
-                lineOpacity = (lineOpacity < 0) ? 0 : lineOpacity;
+                lineOpacity = (lineOpacity < .05) ? .05 : lineOpacity;
                 setLineOpacity(lineOpacity);
             }
 
@@ -767,6 +808,8 @@ namespace ModularVis
                     lines[i].MouseWheel += line_scrolled;
                     lines[i].PreviewMouseLeftButtonDown += line_clicked;
                     lines[i].PreviewMouseUp += line_color;
+                    if (!lineVisible)
+                        lines[i].Visibility = Visibility.Hidden;
 
                     dots[i] = new Ellipse();
                     dots[i].Fill = dbr;
@@ -853,6 +896,8 @@ namespace ModularVis
                     lines[i].MouseWheel += line_scrolled;
                     lines[i].PreviewMouseLeftButtonDown += line_clicked;
                     lines[i].PreviewMouseUp += line_color;
+                    if (!lineVisible)
+                        lines[i].Visibility = Visibility.Hidden;
 
                     dots[i] = new Ellipse();
                     dots[i].Fill = dbr;
@@ -1166,7 +1211,7 @@ namespace ModularVis
 
             private void trail_dragged(object sender, MouseEventArgs e)
             {
-                if (distance(echo[len], e.GetPosition(canv)) > 10 && setLen)
+                if (distance(echo[len], e.GetPosition(canv)) > 5 && setLen)
                 {
                     setLength(e.GetPosition(canv));
                 }
