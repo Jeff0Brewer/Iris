@@ -21,11 +21,6 @@ using EyeXFramework.Wpf;
 using Tobii.EyeX.Framework;
 using EyeXFramework;
 
-/*
- * TO ADD:
- * - saccade line right click and drag to adjust length
- */
-
 
 namespace ModularVis
 {
