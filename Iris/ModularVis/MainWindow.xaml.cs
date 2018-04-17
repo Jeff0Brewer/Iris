@@ -21,6 +21,12 @@ using EyeXFramework.Wpf;
 using Tobii.EyeX.Framework;
 using EyeXFramework;
 
+/*
+ * TO ADD:
+ * - saccade line right click and drag to adjust length
+ */
+
+
 namespace ModularVis
 {
     public partial class MainWindow : Window
@@ -330,7 +336,7 @@ namespace ModularVis
                 startRadius = 35;
                 endRadius = 15;
                 currCount = 1;
-                fixTime = 30;
+                fixTime = 20;
                 startOpacity = .5;
                 endOpacity = .25;
                 smooth = .7;
@@ -340,7 +346,7 @@ namespace ModularVis
                 dots = new Ellipse[len];
                 points = new Point[len];
                 lines = new Line[len];
-                lineWidth = 5;
+                lineWidth = 10;
                 lineOpacity = .5;
                 lineInd = len - 2;
                 potentialFix = new Point(0, 0);
@@ -382,8 +388,8 @@ namespace ModularVis
                     dots[i].MouseWheel += dot_scrolled;
                     dots[i].PreviewMouseUp += dot_color;
 
-                    Panel.SetZIndex(dots[i], 5);
-                    Panel.SetZIndex(lines[i], 6);
+                    Panel.SetZIndex(dots[i], 6);
+                    Panel.SetZIndex(lines[i], 5);
                     canv.Children.Add(dots[i]);
                     canv.Children.Add(lines[i]);
                 }
@@ -400,9 +406,11 @@ namespace ModularVis
                 canv.Children.Add(overlay);
                 colorActive = false;
                 cBr = new SolidColorBrush(Colors.Black);
-
+                
                 if (len > 0 && !activeLineVisible)
-                    lines[len - 1].Opacity = 0;
+                    lines[len - 1].Visibility = Visibility.Hidden;
+                else if (len > 0)
+                    lines[len - 1].Visibility = Visibility.Visible;
             }
 
             public override void linkToControl(TrackControl tc) {
@@ -759,8 +767,6 @@ namespace ModularVis
                 {
                     lines[i].Opacity = lineOpacity;
                 }
-                if (!activeLineVisible && len > 0)
-                    lines[len - 1].Opacity = 0;
             }
 
             public void setLength(int l)
@@ -827,8 +833,8 @@ namespace ModularVis
                     dots[i].MouseWheel += dot_scrolled;
                     dots[i].PreviewMouseUp += dot_color;
 
-                    Panel.SetZIndex(dots[i], 5);
-                    Panel.SetZIndex(lines[i], 6);
+                    Panel.SetZIndex(dots[i], 6);
+                    Panel.SetZIndex(lines[i], 5);
                     canv.Children.Add(dots[i]);
                     canv.Children.Add(lines[i]);
                 }
@@ -842,7 +848,9 @@ namespace ModularVis
                 lineInd = len - 2;
 
                 if (len > 0 && !activeLineVisible)
-                    lines[len - 1].Opacity = 0;
+                    lines[len - 1].Visibility = Visibility.Hidden;
+                else if (len > 0)
+                    lines[len - 1].Visibility = Visibility.Visible;
             }
 
             public void setLength(Point p)
@@ -915,8 +923,8 @@ namespace ModularVis
                     dots[i].MouseWheel += dot_scrolled;
                     dots[i].PreviewMouseUp += dot_color;
 
-                    Panel.SetZIndex(dots[i], 5);
-                    Panel.SetZIndex(lines[i], 6);
+                    Panel.SetZIndex(dots[i], 6);
+                    Panel.SetZIndex(lines[i], 5);
                     canv.Children.Add(dots[i]);
                     canv.Children.Add(lines[i]);
                 }
@@ -925,9 +933,11 @@ namespace ModularVis
                 lines[len - 1].X2 = points[0].X;
                 lines[len - 1].Y2 = points[0].Y;
                 lineInd = len - 2;
-
+                
                 if (len > 0 && !activeLineVisible)
-                    lines[len - 1].Opacity = 0;
+                    lines[len - 1].Visibility = Visibility.Hidden;
+                else if (len > 0)
+                    lines[len - 1].Visibility = Visibility.Visible;
             }
 
             public void setFixTime(double t)
@@ -1004,11 +1014,11 @@ namespace ModularVis
                 if (len > 0){
                     activeLineVisible = !activeLineVisible;
                     if (activeLineVisible) {
-                        lines[len - 1].Opacity = lineOpacity;
+                        lines[len - 1].Visibility = Visibility.Visible;
                         refreshActiveLine();
                     }
                     else
-                        lines[len - 1].Opacity = 0;
+                        lines[len - 1].Visibility = Visibility.Hidden;
                 }
                 return activeLineVisible;
             }
@@ -1017,11 +1027,11 @@ namespace ModularVis
                 if (len > 0){
                     activeLineVisible = v;
                     if (activeLineVisible){
-                        lines[len - 1].Opacity = lineOpacity;
+                        lines[len - 1].Visibility = Visibility.Visible;
                         refreshActiveLine();
                     }
                     else
-                        lines[len - 1].Opacity = 0;
+                        lines[len - 1].Visibility = Visibility.Hidden;
                 }
             }
 
