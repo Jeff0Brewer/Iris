@@ -97,7 +97,7 @@ namespace ModularVis
 
 
             //t1 = new GazeTrack(canv, backgrounds[0]);
-            t1 = new GazeTrack(canv, "controls.jpg");
+            t1 = new GazeTrack(canv, "blankBg.jpg");
             t2 = new GazeLine(canv);
             t3 = new FixPoints(canv);
             TrackControl tC = new TrackControl(new VisElement[3] { t1, t2, t3 });
@@ -3125,7 +3125,7 @@ namespace ModularVis
             private void dispPlaying()
             {
                 if (recorded.Length > 0)
-                    progress.Width = dispTrack.Width * (currInd + 1) / recorded.Length;
+                    progress.Width = progress.Width*.8 + (dispTrack.Width * (currInd + 1) / recorded.Length)*.2;
             }
 
             public Point next()
